@@ -1,0 +1,14 @@
+{
+  "questions_defined": 40,
+  "questions_run": 4,
+  "successful": 4,
+  "failed": 0,
+  "methods_run": [
+    "basic",
+    "drift",
+    "global",
+    "local"
+  ],
+  "results_file": "reports\\query_evaluation.jsonl",
+  "manual_review_pending": true
+}

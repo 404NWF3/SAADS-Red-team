@@ -1,0 +1,214 @@
+
+-Goal-
+Given a text document that is potentially relevant to this activity, first identify all entities needed from the text in order to capture the information and ideas in the text.
+Next, report all relationships among the identified entities.
+
+-Steps-
+1. Identify all entities. For each identified entity, extract the following information:
+- entity_name: Name of the entity, capitalized
+- entity_type: Suggest several labels or categories for the entity. The categories should not be specific, but should be as general as possible.
+- entity_description: Comprehensive description of the entity's attributes and activities
+Format each entity as ("entity"<|><entity_name><|><entity_type><|><entity_description>)
+
+2. From the entities identified in step 1, identify all pairs of (source_entity, target_entity) that are *clearly related* to each other.
+For each pair of related entities, extract the following information:
+- source_entity: name of the source entity, as identified in step 1
+- target_entity: name of the target entity, as identified in step 1
+- relationship_description: explanation as to why you think the source entity and the target entity are related to each other
+- relationship_strength: a numeric score indicating strength of the relationship between the source entity and target entity
+Format each relationship as ("relationship"<|><source_entity><|><target_entity><|><relationship_description><|><relationship_strength>)
+
+3. Return output in Chinese as a single list of all the entities and relationships identified in steps 1 and 2. Use **##** as the list delimiter.
+
+4. If you have to translate into Chinese, just translate the descriptions, nothing else!
+
+5. When finished, output <|COMPLETE|>.
+
+-Examples-
+######################
+
+Example 1:
+
+text:
+ AML.T0025
+  relationship-type: mitigates
+  description: Access controls can prevent exfiltration.
+- source: AML.T0025
+  target: AML.TA0010
+  relationship-type: achieves
+```
+
+## Structured source fields
+
+```yaml
+name: Exfiltration via Cyber Means
+references: []
+created-date: '2021-05-13'
+modified-date: '2026-05-27'
+platforms:
+- Enterprise
+id: AML.T0025
+maturity: Realized
+uuid: f13dede7-12ee-5f0e-985a-4f801aecb681
+object-type: technique
+```
+
+------------------------
+output:
+("entity"<|>AML.CS0012<|>CASE_STUDY<|>MITRE ATLAS的案例研究AML.CS0012，展示了MITRE AI红队对商业人脸识别服务发起物理域规避攻击，旨在诱导目标误分类。)
+##
+("entity"<|>MITRE AI RED TEAM<|>ORGANIZATION<|>执行了针对商业人脸识别服务物理域规避攻击演示的红队。)
+##
+("entity"<|>COMMERCIAL FACE IDENTIFICATION SERVICE<|>SYSTEM<|>MITRE AI红队攻击的目标系统，提供人脸识别API服务。)
+##
+("entity"<|>AML.T0000<|>TECHNIQUE<|>红队首先执行侦察以收集有关目标ML模型的信息。)
+##
+("entity"<|>AML.T0002.000<|>TECHNIQUE<|>红队获取了具有代表性的开源数据。)
+##
+("entity"<|>AML.T0005<|>TECHNIQUE<|>红队使用开源数据开发了代理模型。)
+##
+("entity"<|>AML.T0008.003<|>TECHNIQUE<|>红队打印了优化后的补丁。)
+##
+("entity"<|>AML.T0012<|>TECHNIQUE<|>红队通过有效账户获得了对人脸识别服务及其API的访问权限。)
+##
+("entity"<|>AML.T0013<|>TECHNIQUE<|>红队通过查询目标模型的推理API识别了模型针对的身份列表。)
+##
+("entity"<|>AML.T0015<|>TECHNIQUE<|>红队通过使用物理对策导致目标误分类，成功规避了模型。)
+##
+("entity"<|>AML.T0040<|>TECHNIQUE<|>红队访问了目标模型的推理API。)
+##
+("entity"<|>AML.T0041<|>TECHNIQUE<|>红队将对策放置在物理环境中，以导致人脸识别系统出现问题。)
+##
+("entity"<|>AML.T0043.000<|>TECHNIQUE<|>红队使用代理模型，通过基于变换的期望优化了对抗性视觉图案作为物理域补丁攻击。)
+##
+("relationship"<|>AML.CS0012<|>AML.T0000<|>案例研究采用了侦察技术收集有关目标模型的信息<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0002.000<|>案例研究采用了获取开源数据的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0005<|>案例研究采用了开发代理模型的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0008.003<|>案例研究采用了打印优化补丁的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0012<|>案例研究采用了使用有效账户获取服务访问权限的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0013<|>案例研究采用了查询推理API以发现模型身份信息的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0015<|>案例研究采用了使用物理对策规避ML模型的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0040<|>案例研究采用了访问目标模型推理API的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0041<|>案例研究采用了在物理环境中放置对策的技术<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0043.000<|>案例研究采用了使用代理模型优化对抗性视觉图案的技术<|>8)
+##
+("relationship"<|>MITRE AI RED TEAM<|>AML.CS0012<|>MITRE AI红队执行了该案例研究中的攻击操作<|>9)
+##
+("relationship"<|>AML.CS0012<|>COMMERCIAL FACE IDENTIFICATION SERVICE<|>商业人脸识别服务是该案例研究攻击的目标<|>9)
+##
+("relationship"<|>AML.T0000<|>AML.T0012<|>红队在执行侦察收集信息后，获得了对商业人脸识别服务的有效账户访问权限<|>7)
+##
+("relationship"<|>AML.T0012<|>AML.T0040<|>红队在通过有效账户获得访问权限后，访问了目标模型的推理API<|>7)
+##
+("relationship"<|>AML.T0040<|>AML.T0013<|>红队在访问推理API后，通过查询API识别了模型针对的身份列表<|>7)
+##
+("relationship"<|>AML.T0013<|>AML.T0002.000<|>红队在发现模型身份信息后，获取了具有代表性的开源数据<|>7)
+##
+("relationship"<|>AML.T0002.000<|>AML.T0005<|>红队在获取开源数据后，使用这些数据开发了代理模型<|>7)
+##
+("relationship"<|>AML.T0005<|>AML.T0043.000<|>红队在开发代理模型后，使用它优化了对抗性视觉图案<|>7)
+##
+("relationship"<|>AML.T0043.000<|>AML.T0008.003<|>红队在优化对抗性视觉图案后，打印了优化后的补丁<|>7)
+##
+("relationship"<|>AML.T0008.003<|>AML.T0041<|>红队在打印优化补丁后，将物理对策放置在物理环境中<|>7)
+##
+("relationship"<|>AML.T0041<|>AML.T0015<|>红队在放置物理对策后，成功使用物理对策规避了模型<|>7)
+<|COMPLETE|>
+#############################
+
+
+Example 2:
+
+text:
+0012
+  relationship-type: achieves
+```
+
+## Structured source fields
+
+```yaml
+name: Valid Accounts
+references: []
+created-date: '2022-01-24'
+modified-date: '2026-05-27'
+platforms:
+- Enterprise
+attack-reference:
+  id: T1078
+  url: https://attack.mitre.org/techniques/T1078/
+id: AML.T0012
+maturity: Realized
+uuid: ed66b442-059b-54cb-a806-620e6f8109a6
+object-type: technique
+```
+
+------------------------
+output:
+("entity"<|>AML.CS0012<|>CASE STUDY<|>案例研究：通过物理对策规避面部识别系统。演示了针对商业面部识别服务的物理域规避攻击，旨在引发目标误分类。
+##
+("entity"<|>MITRE AI RED TEAM<|>ORGANIZATION<|>组织。演示了针对商业面部识别服务物理域规避攻击的红队。
+##
+("entity"<|>COMMERCIAL FACE IDENTIFICATION SERVICE<|>SYSTEM<|>系统。MITRE AI红队进行物理规避攻击的目标商业面部识别服务。
+##
+("entity"<|>AML.T0000<|>TECHNIQUE<|>技术。团队首先进行侦察以收集有关目标ML模型的信息。
+##
+("entity"<|>AML.T0002.000<|>TECHNIQUE<|>技术。团队获取了具有代表性的开源数据。
+##
+("entity"<|>AML.T0005<|>TECHNIQUE<|>技术。团队使用开源数据开发了代理模型。
+##
+("entity"<|>AML.T0008.003<|>TECHNIQUE<|>技术。团队打印了优化后的补丁作为物理对策。
+##
+("entity"<|>AML.T0012<|>TECHNIQUE<|>技术。团队通过有效账户获得了对商业面部识别服务及其API的访问权限。
+##
+("entity"<|>AML.T0013<|>TECHNIQUE<|>技术。团队通过查询目标模型的推理API，识别了模型针对的身份列表。
+##
+("entity"<|>AML.T0015<|>TECHNIQUE<|>技术。团队通过引发目标误分类，成功使用物理对策规避了模型。
+##
+("entity"<|>AML.T0040<|>TECHNIQUE<|>技术。团队访问了目标模型的推理API。
+##
+("entity"<|>AML.T0041<|>TECHNIQUE<|>技术。团队将对策放置在物理环境中，导致面部识别系统出现问题。
+##
+("entity"<|>AML.T0043.000<|>TECHNIQUE<|>技术。红队使用代理模型，通过期望变换优化了对抗性视觉模式，作为基于物理域补丁的攻击。
+##
+("relationship"<|>AML.CS0012<|>AML.T0000<|>该案例研究采用AML.T0000技术进行侦察以收集信息<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0002.000<|>该案例研究采用AML.T0002.000技术获取开源数据<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0005<|>该案例研究采用AML.T0005技术开发代理模型<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0008.003<|>该案例研究采用AML.T0008.003技术打印优化后的补丁<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0012<|>该案例研究采用AML.T0012技术通过有效账户获取访问权限<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0013<|>该案例研究采用AML.T0013技术识别模型针对的身份列表<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0015<|>该案例研究采用AML.T0015技术成功使用物理对策规避模型<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0040<|>该案例研究采用AML.T0040技术访问目标模型的推理API<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0041<|>该案例研究采用AML.T0041技术将对策放置在物理环境中<|>8)
+##
+("relationship"<|>AML.CS0012<|>AML.T0043.000<|>该案例研究采用AML.T0043.000技术优化对抗性视觉模式<|>8)
+##
+("relationship"<|>MITRE AI RED TEAM<|>AML.CS0012<|>MITRE AI红队执行了该案例研究中描述的攻击行动<|>9)
+##
+("relationship"<|>MITRE AI RED TEAM<|>COMMERCIAL FACE IDENTIFICATION SERVICE<|>MITRE AI红队针对该商业面部识别服务进行了物理域规避攻击<|>9)
+<|COMPLETE|>
+#############################
+
+
+
+-Real Data-
+######################
+text: {input_text}
+######################
+output:

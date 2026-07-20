@@ -1,0 +1,136 @@
+version: 1
+language: zh-CN
+manual_checks:
+  - answer_is_grounded_in_indexed_sources
+  - attack_and_defense_are_not_confused
+  - relationship_direction_is_correct
+  - uncertainty_or_missing_evidence_is_disclosed
+routing:
+  basic: 定义、原文定位和单一来源事实
+  local: 具体实体、邻接关系和局部缓解措施
+  global: 跨社区主题、领域全景和共性模式
+  drift: 跨组件、多跳依赖和纵深防御方案
+questions:
+  - id: basic-01
+    method: basic
+    question: OWASP Top 10 for LLM Applications 如何描述 Prompt Injection 风险？
+  - id: basic-02
+    method: basic
+    question: OWASP 所说的 Insecure Output Handling 是什么？
+  - id: basic-03
+    method: basic
+    question: OWASP 如何定义 Excessive Agency？
+  - id: basic-04
+    method: basic
+    question: OWASP 对 Sensitive Information Disclosure 的核心说明是什么？
+  - id: basic-05
+    method: basic
+    question: MITRE ATLAS 中 AML.T0015 技术的名称和含义是什么？
+  - id: basic-06
+    method: basic
+    question: MITRE ATLAS 中 Valid Accounts 技术描述了什么行为？
+  - id: basic-07
+    method: basic
+    question: PyRIT 的主要用途是什么？
+  - id: basic-08
+    method: basic
+    question: garak 是什么，它主要测试哪类系统？
+  - id: basic-09
+    method: basic
+    question: OWASP Top 10 中 Model Theft 风险的定义是什么？
+  - id: basic-10
+    method: basic
+    question: OWASP Top 10 中 Data and Model Poisoning 风险的定义是什么？
+
+  - id: local-01
+    method: local
+    question: 哪些防御控制可以缓解 Prompt Injection，它们分别保护什么组件？
+  - id: local-02
+    method: local
+    question: RAG Poisoning 通常利用哪些摄取或检索弱点？
+  - id: local-03
+    method: local
+    question: 对 Agent Tool 调用进行最小权限控制时，相关攻击、弱点和组件有哪些？
+  - id: local-04
+    method: local
+    question: PyRIT 与 jailbreak evaluation 之间是什么关系？
+  - id: local-05
+    method: local
+    question: garak 的探针或评估如何发现模型安全失败？
+  - id: local-06
+    method: local
+    question: 哪些攻击技术以模型推理 API 为目标，它们可能导致什么风险？
+  - id: local-07
+    method: local
+    question: 防御 Model Extraction 时可使用哪些限制、检测或访问控制？
+  - id: local-08
+    method: local
+    question: 针对 Vector Store 的污染攻击与 provenance validation 有什么关系？
+  - id: local-09
+    method: local
+    question: MITRE ATLAS 技术与 OWASP LLM 风险之间有哪些可由语料支持的局部映射？
+  - id: local-10
+    method: local
+    question: 安全过滤器、jailbreak 和红队评估三者之间有哪些明确关系？
+
+  - id: global-01
+    method: global
+    question: 当前语料中的大模型应用防御体系可以分成哪些主要层次？
+  - id: global-02
+    method: global
+    question: OWASP 与 MITRE ATLAS 在描述生成式 AI 风险时各自强调什么？
+  - id: global-03
+    method: global
+    question: 语料中最常见的攻击技术类别和对应防御思路是什么？
+  - id: global-04
+    method: global
+    question: 语料如何描述从数据摄取到模型输出的端到端攻击面？
+  - id: global-05
+    method: global
+    question: 红队工具在大模型安全治理体系中承担哪些共同角色？
+  - id: global-06
+    method: global
+    question: 哪些防御原则在多个不同攻击场景中重复出现？
+  - id: global-07
+    method: global
+    question: 当前知识图谱中的标准、工具和评估之间形成了哪些主要社区？
+  - id: global-08
+    method: global
+    question: 语料反映的大模型供应链与数据供应链风险有哪些共性？
+  - id: global-09
+    method: global
+    question: 语料中的检测性控制与预防性控制各有哪些代表性模式？
+  - id: global-10
+    method: global
+    question: 从整体上看，哪些组件是攻击与防御关系最集中的枢纽？
+
+  - id: drift-01
+    method: drift
+    question: 对同时具有浏览器、代码执行和长期记忆的 Agent，应如何设计有证据支持的纵深防御？
+  - id: drift-02
+    method: drift
+    question: 从不可信网页内容进入 RAG，再影响工具调用的多跳攻击路径可能如何形成，哪些控制可逐层阻断？
+  - id: drift-03
+    method: drift
+    question: 如果攻击者污染向量库并诱导 Agent 调用高权限工具，应组合哪些摄取、检索、决策和执行控制？
+  - id: drift-04
+    method: drift
+    question: 如何把 OWASP 风险、MITRE ATLAS 技术和 PyRIT/garak 评估组织成一条持续验证流程？
+  - id: drift-05
+    method: drift
+    question: 对可访问敏感数据且能调用外部 API 的 LLM 应用，如何同时降低泄露、注入与过度代理风险？
+  - id: drift-06
+    method: drift
+    question: 当模型输出会被下游代码解释执行时，从生成到执行应设置哪些相互补充的控制？
+  - id: drift-07
+    method: drift
+    question: 面对多轮自适应 jailbreak，如何把防护、监测、评估和人工响应连接成闭环？
+  - id: drift-08
+    method: drift
+    question: 在第三方模型、插件和外部知识源共同参与的系统中，如何建立跨边界的信任与验证链？
+  - id: drift-09
+    method: drift
+    question: 如果需要评估 RAG 应用对投毒、提示注入和信息泄露的综合韧性，应怎样组合工具与测试场景？
+  - id: drift-10
+    method: drift
+    question: 哪些攻击—弱点—组件—控制多跳路径最值得优先纳入安全架构评审，依据是什么？

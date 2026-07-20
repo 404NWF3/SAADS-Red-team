@@ -1,0 +1,1531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Graphrag Project Explorer</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;max-width:736px;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Graphrag Project Explorer" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Graphrag Project Explorer&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(--background) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: light-dark(rgb(255 255 255), rgb(24 24 24));
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 12.5px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--viz-font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed=&quot;true&quot;],
+    [aria-selected=&quot;true&quot;],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;graphrag-project-explorer&quot;&gt;
+  &lt;div class=&quot;viz-controls&quot; role=&quot;group&quot; aria-label=&quot;知识视图&quot;&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn btn-primary&quot; data-view=&quot;graph&quot; aria-pressed=&quot;true&quot;&gt;GraphRAG 机制&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-view=&quot;project&quot; aria-pressed=&quot;false&quot;&gt;项目链路&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-view=&quot;query&quot; aria-pressed=&quot;false&quot;&gt;查询选型&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;btn&quot; data-view=&quot;quality&quot; aria-pressed=&quot;false&quot;&gt;质量与路线图&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div id=&quot;gx-stats&quot; class=&quot;viz-grid&quot; aria-label=&quot;当前视图关键指标&quot;&gt;&lt;/div&gt;
+
+  &lt;div class=&quot;gx-visual&quot;&gt;
+    &lt;svg id=&quot;gx-canvas&quot; role=&quot;img&quot; aria-labelledby=&quot;gx-svg-title gx-svg-desc&quot;&gt;&lt;/svg&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;viz-controls&quot;&gt;
+    &lt;label class=&quot;form-label&quot; for=&quot;gx-focus&quot;&gt;聚焦节点
+      &lt;select id=&quot;gx-focus&quot; class=&quot;form-select&quot;&gt;&lt;/select&gt;
+    &lt;/label&gt;
+  &lt;/div&gt;
+
+  &lt;div id=&quot;gx-detail&quot; class=&quot;text-small&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+  #graphrag-project-explorer {
+    display: grid;
+    gap: var(--space-4, 1rem);
+    color: var(--foreground);
+    width: 100%;
+    min-width: 0;
+  }
+
+  #graphrag-project-explorer .gx-visual {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #graphrag-project-explorer #gx-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  #graphrag-project-explorer .gx-node-rect {
+    fill: color-mix(in srgb, var(--viz-series-1) 12%, transparent);
+    stroke: var(--border);
+    stroke-width: 1.5;
+  }
+
+  #graphrag-project-explorer .gx-node-rect.gx-secondary {
+    fill: color-mix(in srgb, var(--viz-series-2) 12%, transparent);
+  }
+
+  #graphrag-project-explorer .gx-node-rect.gx-tertiary {
+    fill: color-mix(in srgb, var(--viz-series-3) 12%, transparent);
+  }
+
+  #graphrag-project-explorer .gx-node-rect.is-selected {
+    fill: var(--primary);
+    stroke: var(--primary);
+  }
+
+  #graphrag-project-explorer .gx-node-text {
+    fill: var(--foreground);
+    font-size: var(--font-size-base);
+    font-weight: 500;
+  }
+
+  #graphrag-project-explorer .gx-node-text.is-selected {
+    fill: var(--primary-foreground);
+  }
+
+  #graphrag-project-explorer .gx-subtext,
+  #graphrag-project-explorer .gx-axis-text {
+    fill: var(--muted-foreground);
+    font-weight: 400;
+  }
+
+  #graphrag-project-explorer .gx-node-text.is-selected .gx-subtext {
+    fill: var(--primary-foreground);
+  }
+
+  #graphrag-project-explorer .gx-connector {
+    fill: none;
+    stroke: var(--muted-foreground);
+    stroke-width: 2;
+  }
+
+  #graphrag-project-explorer .gx-track {
+    fill: var(--muted);
+  }
+
+  #graphrag-project-explorer .gx-bar {
+    fill: color-mix(in srgb, var(--viz-series-1) 58%, var(--muted));
+  }
+
+  #graphrag-project-explorer .gx-bar.is-selected {
+    fill: var(--viz-series-1);
+  }
+
+  #graphrag-project-explorer .gx-road-line {
+    stroke: var(--border);
+    stroke-width: 2;
+  }
+
+  #graphrag-project-explorer .gx-road-dot {
+    fill: var(--card);
+    stroke: var(--viz-series-2);
+    stroke-width: 2;
+  }
+
+  #graphrag-project-explorer .gx-road-dot.gx-p0 {
+    fill: var(--viz-series-2);
+  }
+
+  #graphrag-project-explorer #gx-detail {
+    min-height: 1.5em;
+    color: var(--foreground);
+  }
+
+  @media (max-width: 520px) {
+    #graphrag-project-explorer .viz-controls {
+      align-items: stretch;
+    }
+
+    #graphrag-project-explorer .viz-controls .btn,
+    #graphrag-project-explorer .viz-controls .form-label {
+      flex: 1 1 100%;
+    }
+  }
+&lt;/style&gt;
+
+&lt;script&gt;
+(() =&gt; {
+  const root = document.getElementById(&quot;graphrag-project-explorer&quot;);
+  const canvas = root.querySelector(&quot;#gx-canvas&quot;);
+  const stats = root.querySelector(&quot;#gx-stats&quot;);
+  const focus = root.querySelector(&quot;#gx-focus&quot;);
+  const detail = root.querySelector(&quot;#gx-detail&quot;);
+  const viewButtons = Array.from(root.querySelectorAll(&quot;[data-view]&quot;));
+
+  const views = {
+    graph: {
+      title: &quot;GraphRAG 两阶段工作机制&quot;,
+      description: &quot;可信文档经过分块、实体与关系抽取、社区发现、报告与向量化后，为 Basic、Local、Global 和 DRIFT 查询提供不同粒度的上下文。&quot;,
+      stats: [
+        [&quot;离线产物&quot;, &quot;6 类 Parquet&quot;, &quot;文档、文本块、实体、关系、社区、社区报告&quot;],
+        [&quot;向量索引&quot;, &quot;3 张表&quot;, &quot;文本、实体描述与社区内容&quot;],
+        [&quot;查询策略&quot;, &quot;4 种&quot;, &quot;Basic · Local · Global · DRIFT&quot;]
+      ],
+      defaultFocus: &quot;entities&quot;,
+      items: [
+        { id: &quot;documents&quot;, label: &quot;可信文档&quot;, sub: &quot;来源与审计元数据&quot;, detail: &quot;每篇文档保留 canonical URL、版本、许可证、原始快照和 SHA-256，使回答可以回到原始来源。&quot; },
+        { id: &quot;chunks&quot;, label: &quot;分块&quot;, sub: &quot;Text units&quot;, detail: &quot;文档按 1,200 token 分块、重叠 100 token，并把标题、来源、信任级别与 URL 前置到每个块。&quot; },
+        { id: &quot;entities&quot;, label: &quot;实体与关系&quot;, sub: &quot;抽取、归并、定向&quot;, detail: &quot;Standard 索引用领域 Prompt 抽取七类实体及有向关系，再跨文本块归并描述；关系必须由原文明确支持。&quot; },
+        { id: &quot;communities&quot;, label: &quot;社区与报告&quot;, sub: &quot;层次化主题结构&quot;, detail: &quot;图社区把紧密关联的实体组织成局部子图，并生成带数据引用的社区报告，供全局归纳与广域探索使用。&quot; },
+        { id: &quot;vectors&quot;, label: &quot;向量化&quot;, sub: &quot;LanceDB&quot;, detail: &quot;文本块、实体描述和社区完整内容分别写入向量表，向量召回与图邻域共同组成查询上下文。&quot; },
+        { id: &quot;context&quot;, label: &quot;查询上下文&quot;, sub: &quot;受 token 预算约束&quot;, detail: &quot;在线查询不重新建图，而是按问题选择文本、实体邻域、社区报告或多跳路径，再由 completion 模型生成带来源的回答。&quot; },
+        { id: &quot;basic&quot;, label: &quot;Basic&quot;, sub: &quot;相似文本块&quot;, detail: &quot;Basic 适合定义、原文定位和单一来源事实；成本最低，但不利用图结构。&quot; },
+        { id: &quot;local&quot;, label: &quot;Local&quot;, sub: &quot;实体邻域&quot;, detail: &quot;Local 适合明确实体、相邻关系与局部缓解控制；质量高度依赖实体归并和关系方向。&quot; },
+        { id: &quot;global&quot;, label: &quot;Global&quot;, sub: &quot;社区 map-reduce&quot;, detail: &quot;Global 适合跨语料主题、共性和领域全景；资源消耗较高，社区摘要可能压缩细节。&quot; },
+        { id: &quot;drift&quot;, label: &quot;DRIFT&quot;, sub: &quot;广域到多跳&quot;, detail: &quot;DRIFT 从社区主题出发迭代追问实体与文本证据，适合多跳研究，但推演必须逐条回到来源验证。&quot; }
+      ]
+    },
+    project: {
+      title: &quot;SAADS-Red-team 端到端数据与控制流&quot;,
+      description: &quot;项目从四个权威或官方来源确定性采集语料，经 GraphRAG Standard 索引、质量分析、评测和静态导出，最终形成不携带 API 密钥的浏览器看板。&quot;,
+      stats: [
+        [&quot;审计语料&quot;, &quot;297 篇&quot;, &quot;MITRE 271 · garak 15 · OWASP 10 · PyRIT 1&quot;],
+        [&quot;图谱实体&quot;, &quot;2,973&quot;, &quot;七类领域实体，另有 3 个越界实体&quot;],
+        [&quot;有向关系&quot;, &quot;5,481&quot;, &quot;攻击、缓解、实现、评估等语义&quot;]
+      ],
+      defaultFocus: &quot;index&quot;,
+      items: [
+        { id: &quot;sources&quot;, label: &quot;可信来源&quot;, sub: &quot;MITRE · OWASP · garak · PyRIT&quot;, detail: &quot;语料只从权威框架和官方项目入口采集；当前 91.25% 来自 MITRE ATLAS，覆盖面仍不均衡。&quot; },
+        { id: &quot;collect&quot;, label: &quot;确定性采集&quot;, sub: &quot;raw · Markdown · manifest&quot;, detail: &quot;采集器下载原始快照，转换为带 front matter 的 Markdown，并生成 manifest、_corpus.json 与完整性摘要。&quot; },
+        { id: &quot;index&quot;, label: &quot;Standard 索引&quot;, sub: &quot;GraphRAG 3.1.1&quot;, detail: &quot;当前实际构建使用 DeepSeek deepseek-v4-flash completion 与智谱 embedding-3（2,048 维）；这与 AGENTS.md 的 GLM 要求存在治理冲突。&quot; },
+        { id: &quot;quality&quot;, label: &quot;图谱质量&quot;, sub: &quot;分析、门禁、报告&quot;, detail: &quot;构建后校验六类 Parquet 与 LanceDB，再统计类型越界、孤立节点、两跳攻防覆盖、关系方向候选和社区报告完整性。&quot; },
+        { id: &quot;evaluation&quot;, label: &quot;查询评测&quot;, sub: &quot;40 题 · 4 题冒烟&quot;, detail: &quot;问题集按四种模式各 10 题设计；当前只运行 4 题技术冒烟，完整人工标注和模式级统计仍待完成。&quot; },
+        { id: &quot;dashboard&quot;, label: &quot;静态看板&quot;, sub: &quot;只读快照 · 无密钥&quot;, detail: &quot;看板在浏览器内探索导出的图谱快照，不调用 GraphRAG completion API；真实查询由用户复制 CLI 命令执行。&quot; }
+      ]
+    },
+    query: {
+      title: &quot;四类查询策略选择矩阵&quot;,
+      description: &quot;问题粒度决定上下文类型：文本事实用 Basic，明确实体关系用 Local，跨语料全景用 Global，广域主题到多跳研究用 DRIFT。&quot;,
+      stats: [
+        [&quot;评测问题&quot;, &quot;40 题&quot;, &quot;Basic、Local、Global、DRIFT 各 10 题&quot;],
+        [&quot;技术冒烟&quot;, &quot;4/4&quot;, &quot;每种模式各 1 题，均返回引用&quot;],
+        [&quot;人工复核&quot;, &quot;待完成&quot;, &quot;证据落地、攻防区分、方向与不确定性&quot;]
+      ],
+      defaultFocus: &quot;local&quot;,
+      items: [
+        { id: &quot;basic&quot;, label: &quot;Basic&quot;, sub: &quot;文本块&quot;, fit: &quot;定义与原文定位&quot;, risk: &quot;跨文档综合有限&quot;, detail: &quot;若一两个原文片段足以回答，优先 Basic；示例：OWASP 如何定义 Prompt Injection？&quot; },
+        { id: &quot;local&quot;, label: &quot;Local&quot;, sub: &quot;实体、关系、文本块、社区&quot;, fit: &quot;具体攻击与局部控制&quot;, risk: &quot;依赖实体归并与方向&quot;, detail: &quot;问题围绕明确对象、相邻关系或控制时使用 Local；示例：哪些控制可以缓解 Prompt Injection？&quot; },
+        { id: &quot;global&quot;, label: &quot;Global&quot;, sub: &quot;社区报告 map-reduce&quot;, fit: &quot;领域主题与共性&quot;, risk: &quot;成本高且可能压缩细节&quot;, detail: &quot;问题要求覆盖整个语料、比较多个社区或总结共性时使用 Global；示例：当前语料中的防御体系有哪些层次？&quot; },
+        { id: &quot;drift&quot;, label: &quot;DRIFT&quot;, sub: &quot;社区起点、实体邻域、迭代追问&quot;, fit: &quot;多跳路径与纵深防御&quot;, risk: &quot;推演必须回到来源&quot;, detail: &quot;需要从广域主题继续追踪多跳路径时使用 DRIFT；示例：RAG 投毒如何跨组件影响高权限工具调用？&quot; }
+      ]
+    },
+    quality: {
+      title: &quot;当前图谱质量、缺口与改进优先级&quot;,
+      description: &quot;社区报告和类型合规度很高，但完整评测、两跳攻防覆盖、孤立节点与模型治理仍是上线前的关键缺口。&quot;,
+      stats: [
+        [&quot;孤立节点&quot;, &quot;254&quot;, &quot;占全部实体 8.54%&quot;],
+        [&quot;未覆盖攻击&quot;, &quot;259&quot;, &quot;两跳内没有防御控制&quot;],
+        [&quot;越界实体&quot;, &quot;3&quot;, &quot;PERSON 2 · API 1&quot;]
+      ],
+      defaultFocus: &quot;evaluation&quot;,
+      items: [
+        { id: &quot;reports&quot;, label: &quot;社区报告完整&quot;, value: 100, display: &quot;630 / 630&quot;, detail: &quot;630 份社区报告均有标题和正文；仍需把生成摘要当作检索辅助，而不是规范性原文。&quot; },
+        { id: &quot;schema&quot;, label: &quot;实体类型合规&quot;, value: 99.9, display: &quot;2,970 / 2,973&quot;, detail: &quot;仅 3 个实体越过七类 allowlist；P0 应增加抽取后的类型校验或显式归一化记录。&quot; },
+        { id: &quot;connected&quot;, label: &quot;非孤立节点&quot;, value: 91.46, display: &quot;2,719 / 2,973&quot;, detail: &quot;254 个孤立节点不能被 Local 或 DRIFT 通过关系扩展，应回查抽取、归并和来源覆盖。&quot; },
+        { id: &quot;coverage&quot;, label: &quot;攻防两跳覆盖&quot;, value: 73.76, display: &quot;728 / 987&quot;, detail: &quot;仍有 259 个攻击实体在两跳内没有防御控制；P1 应建立未覆盖清单并跟踪覆盖率变化。&quot; },
+        { id: &quot;evaluation&quot;, label: &quot;完整评测进度&quot;, value: 10, display: &quot;4 / 40&quot;, detail: &quot;当前只有四模式各 1 题冒烟；P0 必须完成 40 题运行、四项人工检查和模式级质量统计。&quot; }
+      ]
+    }
+  };
+
+  let currentView = &quot;graph&quot;;
+  let currentFocus = views.graph.defaultFocus;
+  let narrow = false;
+
+  const escapeText = (value) =&gt; String(value)
+    .replaceAll(&quot;&amp;&quot;, &quot;&amp;amp;&quot;)
+    .replaceAll(&quot;&lt;&quot;, &quot;&amp;lt;&quot;)
+    .replaceAll(&quot;&gt;&quot;, &quot;&amp;gt;&quot;)
+    .replaceAll(&#x27;&quot;&#x27;, &quot;&amp;quot;&quot;);
+
+  const svgStart = (viewBox, title, description) =&gt; `
+    &lt;title id=&quot;gx-svg-title&quot;&gt;${escapeText(title)}&lt;/title&gt;
+    &lt;desc id=&quot;gx-svg-desc&quot;&gt;${escapeText(description)}&lt;/desc&gt;
+    &lt;defs&gt;
+      &lt;marker id=&quot;gx-arrow&quot; viewBox=&quot;0 0 10 10&quot; refX=&quot;8&quot; refY=&quot;5&quot; markerWidth=&quot;6&quot; markerHeight=&quot;6&quot; orient=&quot;auto-start-reverse&quot;&gt;
+        &lt;path d=&quot;M 0 0 L 10 5 L 0 10 z&quot; fill=&quot;var(--muted-foreground)&quot;&gt;&lt;/path&gt;
+      &lt;/marker&gt;
+    &lt;/defs&gt;
+    &lt;g aria-hidden=&quot;true&quot; data-view-box=&quot;${viewBox}&quot;&gt;`;
+
+  const svgEnd = &quot;&lt;/g&gt;&quot;;
+
+  function nodeMarkup(item, x, y, width, height, selected, variant = &quot;&quot;) {
+    const center = x + width / 2;
+    const rectClass = [&quot;gx-node-rect&quot;, selected ? &quot;is-selected&quot; : &quot;&quot;, variant].filter(Boolean).join(&quot; &quot;);
+    const textClass = [&quot;gx-node-text&quot;, selected ? &quot;is-selected&quot; : &quot;&quot;].filter(Boolean).join(&quot; &quot;);
+    return `
+      &lt;g&gt;
+        &lt;rect class=&quot;${rectClass}&quot; x=&quot;${x}&quot; y=&quot;${y}&quot; width=&quot;${width}&quot; height=&quot;${height}&quot; rx=&quot;12&quot;&gt;&lt;/rect&gt;
+        &lt;text class=&quot;${textClass}&quot; x=&quot;${center}&quot; y=&quot;${y + height / 2 - 7}&quot; text-anchor=&quot;middle&quot;&gt;
+          &lt;tspan x=&quot;${center}&quot;&gt;${escapeText(item.label)}&lt;/tspan&gt;
+          &lt;tspan class=&quot;gx-subtext text-small&quot; x=&quot;${center}&quot; dy=&quot;24&quot;&gt;${escapeText(item.sub || &quot;&quot;)}&lt;/tspan&gt;
+        &lt;/text&gt;
+      &lt;/g&gt;`;
+  }
+
+  function connector(x1, y1, x2, y2) {
+    return `&lt;path class=&quot;gx-connector&quot; marker-end=&quot;url(#gx-arrow)&quot; d=&quot;M ${x1} ${y1} L ${x2} ${y2}&quot;&gt;&lt;/path&gt;`;
+  }
+
+  function renderFlow(config, kind) {
+    const mainItems = config.items.slice(0, 6);
+    const extraItems = kind === &quot;graph&quot; ? config.items.slice(6) : [];
+    let markup = &quot;&quot;;
+
+    if (!narrow) {
+      const boxWidth = 126;
+      const boxHeight = 82;
+      const gap = 25;
+      const startX = 20;
+      const y = 56;
+      mainItems.forEach((item, index) =&gt; {
+        const x = startX + index * (boxWidth + gap);
+        if (index &gt; 0) {
+          const previousX = startX + (index - 1) * (boxWidth + gap) + boxWidth;
+          markup += connector(previousX + 4, y + boxHeight / 2, x - 6, y + boxHeight / 2);
+        }
+        markup += nodeMarkup(item, x, y, boxWidth, boxHeight, item.id === currentFocus);
+      });
+
+      if (kind === &quot;graph&quot;) {
+        const branchY = 234;
+        const branchWidth = 190;
+        const branchGap = 30;
+        const branchStart = 35;
+        const sourceX = startX + 5 * (boxWidth + gap) + boxWidth / 2;
+        markup += `&lt;path class=&quot;gx-connector&quot; d=&quot;M ${sourceX} ${y + boxHeight} L ${sourceX} 193 L 130 193&quot;&gt;&lt;/path&gt;`;
+        extraItems.forEach((item, index) =&gt; {
+          const x = branchStart + index * (branchWidth + branchGap);
+          markup += connector(x + branchWidth / 2, 193, x + branchWidth / 2, branchY - 8);
+          markup += nodeMarkup(item, x, branchY, branchWidth, 76, item.id === currentFocus, index % 2 ? &quot;gx-secondary&quot; : &quot;&quot;);
+        });
+      } else {
+        const indexItem = mainItems.findIndex((item) =&gt; item.id === &quot;index&quot;);
+        const indexCenter = startX + indexItem * (boxWidth + gap) + boxWidth / 2;
+        markup += `&lt;path class=&quot;gx-connector&quot; d=&quot;M ${indexCenter} ${y + boxHeight} L ${indexCenter} 213&quot;&gt;&lt;/path&gt;`;
+        markup += nodeMarkup({ label: &quot;Completion&quot;, sub: &quot;DeepSeek v4 flash&quot; }, 260, 235, 190, 72, currentFocus === &quot;index&quot;, &quot;gx-secondary&quot;);
+        markup += nodeMarkup({ label: &quot;Embedding&quot;, sub: &quot;智谱 embedding-3 · 2,048d&quot; }, 475, 235, 230, 72, currentFocus === &quot;index&quot;, &quot;gx-tertiary&quot;);
+        markup += connector(indexCenter, 213, 355, 229);
+        markup += connector(indexCenter, 213, 590, 229);
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;460&quot; y=&quot;350&quot; text-anchor=&quot;middle&quot;&gt;治理差异 · 团队规则要求 GLM，当前构建实际使用 DeepSeek completion&lt;/text&gt;`;
+      }
+      canvas.setAttribute(&quot;viewBox&quot;, `0 0 920 ${kind === &quot;graph&quot; ? 350 : 375}`);
+    } else {
+      const boxWidth = 300;
+      const boxHeight = 76;
+      const x = 30;
+      let y = 30;
+      mainItems.forEach((item, index) =&gt; {
+        if (index &gt; 0) markup += connector(180, y - 28, 180, y - 7);
+        markup += nodeMarkup(item, x, y, boxWidth, boxHeight, item.id === currentFocus);
+        y += 112;
+      });
+      if (kind === &quot;graph&quot;) {
+        y += 18;
+        extraItems.forEach((item, index) =&gt; {
+          if (index &gt; 0) markup += connector(180, y - 25, 180, y - 5);
+          markup += nodeMarkup(item, 45, y, 270, 72, item.id === currentFocus, index % 2 ? &quot;gx-secondary&quot; : &quot;&quot;);
+          y += 105;
+        });
+      } else {
+        markup += nodeMarkup({ label: &quot;Completion&quot;, sub: &quot;DeepSeek v4 flash&quot; }, 45, y + 12, 270, 72, currentFocus === &quot;index&quot;, &quot;gx-secondary&quot;);
+        markup += nodeMarkup({ label: &quot;Embedding&quot;, sub: &quot;智谱 embedding-3 · 2,048d&quot; }, 45, y + 112, 270, 72, currentFocus === &quot;index&quot;, &quot;gx-tertiary&quot;);
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;180&quot; y=&quot;${y + 230}&quot; text-anchor=&quot;middle&quot;&gt;&lt;tspan x=&quot;180&quot;&gt;治理差异：团队规则要求 GLM&lt;/tspan&gt;&lt;tspan x=&quot;180&quot; dy=&quot;22&quot;&gt;当前构建实际使用 DeepSeek completion&lt;/tspan&gt;&lt;/text&gt;`;
+        y += 250;
+      }
+      canvas.setAttribute(&quot;viewBox&quot;, `0 0 360 ${y + 15}`);
+    }
+    canvas.innerHTML = svgStart(canvas.getAttribute(&quot;viewBox&quot;), config.title, config.description) + markup + svgEnd;
+  }
+
+  function queryCard(item, x, y, width, height) {
+    const selected = item.id === currentFocus;
+    const rectClass = [&quot;gx-node-rect&quot;, selected ? &quot;is-selected&quot; : &quot;&quot;, item.id === &quot;local&quot; || item.id === &quot;drift&quot; ? &quot;gx-secondary&quot; : &quot;&quot;].filter(Boolean).join(&quot; &quot;);
+    const textClass = [&quot;gx-node-text&quot;, selected ? &quot;is-selected&quot; : &quot;&quot;].filter(Boolean).join(&quot; &quot;);
+    const left = x + 20;
+    return `
+      &lt;g&gt;
+        &lt;rect class=&quot;${rectClass}&quot; x=&quot;${x}&quot; y=&quot;${y}&quot; width=&quot;${width}&quot; height=&quot;${height}&quot; rx=&quot;12&quot;&gt;&lt;/rect&gt;
+        &lt;text class=&quot;${textClass}&quot; x=&quot;${left}&quot; y=&quot;${y + 36}&quot;&gt;
+          &lt;tspan x=&quot;${left}&quot;&gt;${escapeText(item.label)}&lt;/tspan&gt;
+          &lt;tspan class=&quot;gx-subtext text-small&quot; x=&quot;${left}&quot; dy=&quot;30&quot;&gt;上下文 · ${escapeText(item.sub)}&lt;/tspan&gt;
+          &lt;tspan class=&quot;gx-subtext text-small&quot; x=&quot;${left}&quot; dy=&quot;25&quot;&gt;适合 · ${escapeText(item.fit)}&lt;/tspan&gt;
+          &lt;tspan class=&quot;gx-subtext text-small&quot; x=&quot;${left}&quot; dy=&quot;25&quot;&gt;风险 · ${escapeText(item.risk)}&lt;/tspan&gt;
+        &lt;/text&gt;
+      &lt;/g&gt;`;
+  }
+
+  function renderQuery(config) {
+    let markup = &quot;&quot;;
+    if (!narrow) {
+      const positions = [[25, 35], [470, 35], [25, 230], [470, 230]];
+      config.items.forEach((item, index) =&gt; {
+        markup += queryCard(item, positions[index][0], positions[index][1], 425, 165);
+      });
+      canvas.setAttribute(&quot;viewBox&quot;, &quot;0 0 920 430&quot;);
+    } else {
+      config.items.forEach((item, index) =&gt; {
+        markup += queryCard(item, 25, 25 + index * 175, 310, 150);
+      });
+      canvas.setAttribute(&quot;viewBox&quot;, &quot;0 0 360 710&quot;);
+    }
+    canvas.innerHTML = svgStart(canvas.getAttribute(&quot;viewBox&quot;), config.title, config.description) + markup + svgEnd;
+  }
+
+  function renderQuality(config) {
+    let markup = &quot;&quot;;
+    if (!narrow) {
+      const labelX = 20;
+      const trackX = 270;
+      const trackWidth = 500;
+      config.items.forEach((item, index) =&gt; {
+        const y = 44 + index * 67;
+        const width = trackWidth * item.value / 100;
+        markup += `&lt;text class=&quot;gx-node-text&quot; x=&quot;${labelX}&quot; y=&quot;${y + 18}&quot;&gt;${escapeText(item.label)}&lt;/text&gt;`;
+        markup += `&lt;rect class=&quot;gx-track&quot; x=&quot;${trackX}&quot; y=&quot;${y}&quot; width=&quot;${trackWidth}&quot; height=&quot;28&quot; rx=&quot;10&quot;&gt;&lt;/rect&gt;`;
+        markup += `&lt;rect class=&quot;gx-bar ${item.id === currentFocus ? &quot;is-selected&quot; : &quot;&quot;}&quot; x=&quot;${trackX}&quot; y=&quot;${y}&quot; width=&quot;${width}&quot; height=&quot;28&quot; rx=&quot;10&quot;&gt;&lt;/rect&gt;`;
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;790&quot; y=&quot;${y + 19}&quot;&gt;${escapeText(item.display)} · ${item.value}%&lt;/text&gt;`;
+      });
+      const roadY = 410;
+      markup += `&lt;line class=&quot;gx-road-line&quot; x1=&quot;130&quot; y1=&quot;${roadY}&quot; x2=&quot;790&quot; y2=&quot;${roadY}&quot;&gt;&lt;/line&gt;`;
+      [[130, &quot;P0&quot;, &quot;治理 · 评测 · 类型 · 关系&quot;], [460, &quot;P1&quot;, &quot;覆盖 · 门禁 · 来源 · 成本&quot;], [790, &quot;P2&quot;, &quot;Baseline · 生产服务&quot;]].forEach((step, index) =&gt; {
+        markup += `&lt;circle class=&quot;gx-road-dot ${index === 0 ? &quot;gx-p0&quot; : &quot;&quot;}&quot; cx=&quot;${step[0]}&quot; cy=&quot;${roadY}&quot; r=&quot;11&quot;&gt;&lt;/circle&gt;`;
+        markup += `&lt;text class=&quot;gx-node-text&quot; x=&quot;${step[0]}&quot; y=&quot;${roadY + 42}&quot; text-anchor=&quot;middle&quot;&gt;${step[1]}&lt;/text&gt;`;
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;${step[0]}&quot; y=&quot;${roadY + 66}&quot; text-anchor=&quot;middle&quot;&gt;${step[2]}&lt;/text&gt;`;
+      });
+      canvas.setAttribute(&quot;viewBox&quot;, &quot;0 0 920 510&quot;);
+    } else {
+      const trackX = 25;
+      const trackWidth = 310;
+      config.items.forEach((item, index) =&gt; {
+        const y = 35 + index * 92;
+        const width = trackWidth * item.value / 100;
+        markup += `&lt;text class=&quot;gx-node-text&quot; x=&quot;25&quot; y=&quot;${y}&quot;&gt;${escapeText(item.label)}&lt;/text&gt;`;
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;335&quot; y=&quot;${y}&quot; text-anchor=&quot;end&quot;&gt;${escapeText(item.display)} · ${item.value}%&lt;/text&gt;`;
+        markup += `&lt;rect class=&quot;gx-track&quot; x=&quot;${trackX}&quot; y=&quot;${y + 17}&quot; width=&quot;${trackWidth}&quot; height=&quot;26&quot; rx=&quot;10&quot;&gt;&lt;/rect&gt;`;
+        markup += `&lt;rect class=&quot;gx-bar ${item.id === currentFocus ? &quot;is-selected&quot; : &quot;&quot;}&quot; x=&quot;${trackX}&quot; y=&quot;${y + 17}&quot; width=&quot;${width}&quot; height=&quot;26&quot; rx=&quot;10&quot;&gt;&lt;/rect&gt;`;
+      });
+      const roadY = 545;
+      markup += `&lt;line class=&quot;gx-road-line&quot; x1=&quot;55&quot; y1=&quot;${roadY}&quot; x2=&quot;305&quot; y2=&quot;${roadY}&quot;&gt;&lt;/line&gt;`;
+      [[55, &quot;P0&quot;, &quot;治理 / 评测&quot;], [180, &quot;P1&quot;, &quot;覆盖 / 门禁&quot;], [305, &quot;P2&quot;, &quot;对照 / 服务&quot;]].forEach((step, index) =&gt; {
+        markup += `&lt;circle class=&quot;gx-road-dot ${index === 0 ? &quot;gx-p0&quot; : &quot;&quot;}&quot; cx=&quot;${step[0]}&quot; cy=&quot;${roadY}&quot; r=&quot;10&quot;&gt;&lt;/circle&gt;`;
+        markup += `&lt;text class=&quot;gx-node-text&quot; x=&quot;${step[0]}&quot; y=&quot;${roadY + 39}&quot; text-anchor=&quot;middle&quot;&gt;${step[1]}&lt;/text&gt;`;
+        markup += `&lt;text class=&quot;gx-axis-text text-small&quot; x=&quot;${step[0]}&quot; y=&quot;${roadY + 62}&quot; text-anchor=&quot;middle&quot;&gt;${step[2]}&lt;/text&gt;`;
+      });
+      canvas.setAttribute(&quot;viewBox&quot;, &quot;0 0 360 635&quot;);
+    }
+    canvas.innerHTML = svgStart(canvas.getAttribute(&quot;viewBox&quot;), config.title, config.description) + markup + svgEnd;
+  }
+
+  function renderStats(config) {
+    stats.innerHTML = config.stats.map(([label, value, context]) =&gt; `
+      &lt;div class=&quot;card viz-stat&quot;&gt;
+        &lt;div class=&quot;text-muted&quot;&gt;${escapeText(label)}&lt;/div&gt;
+        &lt;div class=&quot;viz-stat-value&quot;&gt;${escapeText(value)}&lt;/div&gt;
+        &lt;div class=&quot;text-small&quot;&gt;${escapeText(context)}&lt;/div&gt;
+      &lt;/div&gt;`).join(&quot;&quot;);
+  }
+
+  function renderFocus(config) {
+    focus.innerHTML = config.items.map((item) =&gt; `&lt;option value=&quot;${escapeText(item.id)}&quot;&gt;${escapeText(item.label)}&lt;/option&gt;`).join(&quot;&quot;);
+    focus.value = currentFocus;
+    const selected = config.items.find((item) =&gt; item.id === currentFocus) || config.items[0];
+    detail.textContent = `${selected.label} · ${selected.detail}`;
+  }
+
+  function draw() {
+    const config = views[currentView];
+    if (currentView === &quot;query&quot;) renderQuery(config);
+    else if (currentView === &quot;quality&quot;) renderQuality(config);
+    else renderFlow(config, currentView);
+  }
+
+  function renderView() {
+    const config = views[currentView];
+    viewButtons.forEach((button) =&gt; {
+      const active = button.dataset.view === currentView;
+      button.classList.toggle(&quot;btn-primary&quot;, active);
+      button.setAttribute(&quot;aria-pressed&quot;, String(active));
+    });
+    renderStats(config);
+    renderFocus(config);
+    draw();
+  }
+
+  viewButtons.forEach((button) =&gt; {
+    button.addEventListener(&quot;click&quot;, () =&gt; {
+      currentView = button.dataset.view;
+      currentFocus = views[currentView].defaultFocus;
+      renderView();
+    });
+  });
+
+  focus.addEventListener(&quot;change&quot;, () =&gt; {
+    currentFocus = focus.value;
+    renderFocus(views[currentView]);
+    draw();
+  });
+
+  const resizeObserver = new ResizeObserver((entries) =&gt; {
+    const nextNarrow = entries[0].contentRect.width &lt; 520;
+    if (nextNarrow !== narrow) {
+      narrow = nextNarrow;
+      draw();
+    }
+  });
+  resizeObserver.observe(root);
+
+  narrow = root.getBoundingClientRect().width &lt; 520;
+  renderView();
+})();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>

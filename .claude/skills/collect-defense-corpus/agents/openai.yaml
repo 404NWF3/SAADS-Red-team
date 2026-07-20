@@ -1,0 +1,4 @@
+interface:
+  display_name: "Defense Corpus Collector"
+  short_description: "Collect and audit trusted LLM defense sources"
+  default_prompt: "Use $collect-defense-corpus to refresh and validate the local defense corpus."

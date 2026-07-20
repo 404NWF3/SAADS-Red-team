@@ -1,0 +1,123 @@
+-Goal-
+从大语言模型与生成式 AI 应用安全文档中，抽取对防御知识检索有价值的实体，以及文本明确支持的实体关系。
+
+-Allowed entity types-
+输出中的 entity_type 必须严格取自 Entity_types，不得创造缩写、同义类型或其他类型。七类语义如下：
+
+1. ATTACK_TECHNIQUE：攻击者用来操纵、绕过、污染、泄露、窃取或滥用 AI 系统的具体方法，例如 prompt injection、jailbreak、RAG poisoning、model extraction。攻击造成的弱点不是攻击技术。
+2. DEFENSE_CONTROL：可预防、检测、限制、响应或恢复攻击的具体控制，例如 provenance validation、least privilege、tool allowlist、human approval。仅描述防御目的、建议或原则但没有可识别控制时不要抽取。
+3. COMPONENT：受到攻击或承载控制的模型、数据存储、服务、接口或运行时边界，例如 LLM、retriever、vector store、system prompt、tool executor、agent memory。
+4. VULNERABILITY：使攻击成为可能的设计弱点、暴露或失效条件，例如 untrusted instructions and data sharing one channel、excessive agency、insecure output handling。不要把攻击动作本身标为此类。
+5. TOOL：可执行或可部署的具名安全测试、防御或红队软件，例如 PyRIT、garak、NeMo Guardrails。标准、分类法和普通组件不是工具。
+6. STANDARD：具名标准、框架、分类法、控制目录或权威指南，例如 OWASP Top 10 for LLM Applications、MITRE ATLAS、NIST AI RMF。
+7. EVALUATION：具名基准、测试套件、评估方法或明确的评估任务/场景，例如 CyberSecEval、multi-turn jailbreak evaluation。执行评估的软件仍标为 TOOL。
+
+不要抽取 PERSON、ORGANIZATION、COUNTRY、DATE、METRIC、CASE_STUDY、SYSTEM、TECHNIQUE 等未列出的类型。组织名称只有在它是某个标准或工具正式名称的一部分时才保留在该实体名称中。
+
+-Steps-
+1. 识别实体。对每个实体输出：
+   - entity_name：稳定、明确、可复用的名称；英文专名保持英文并转为大写，编号保留原样。
+   - entity_type：只能是 Entity_types 中的一项。
+   - entity_description：用中文概括文本明确给出的属性、作用、适用边界和限制。不得补充外部知识。
+   格式：("entity"<|><entity_name><|><entity_type><|><entity_description>)
+
+2. 仅在文本明确支持时抽取关系。source_entity 与 target_entity 必须都已在步骤 1 输出。关系描述必须用中文写出方向和语义，优先表达“利用、针对、导致、缓解、检测、保护、实现、推荐、评估、限制、依赖、映射”等含义，但不要求使用封闭谓词表。
+   - 攻击针对组件：ATTACK_TECHNIQUE -> COMPONENT。
+   - 攻击利用弱点：ATTACK_TECHNIQUE -> VULNERABILITY。
+   - 控制缓解攻击或弱点：DEFENSE_CONTROL -> ATTACK_TECHNIQUE/VULNERABILITY。
+   - 工具实施控制或执行评估：TOOL -> DEFENSE_CONTROL/EVALUATION。
+   - 标准推荐控制或收录攻击：STANDARD -> DEFENSE_CONTROL/ATTACK_TECHNIQUE。
+   - 评估检验组件、攻击或控制：EVALUATION -> COMPONENT/ATTACK_TECHNIQUE/DEFENSE_CONTROL。
+   relationship_strength 使用 1–10 的整数，9–10 表示原文直接、核心的关系，6–8 表示清晰关系，1–5 只用于较弱但仍有明确文本依据的关系。
+   格式：("relationship"<|><source_entity><|><target_entity><|><relationship_description><|><relationship_strength>)
+
+3. 去重：同一实体只输出一次；别名优先采用文档中的正式名称。不要仅因两个实体出现在同一段落就建立关系。
+
+4. 所有实体和关系用 ## 分隔。最后输出 <|COMPLETE|>。除指定记录外不要输出解释、Markdown 或 JSON。
+
+######################
+-Examples-
+######################
+
+Example 1
+Entity_types: ATTACK_TECHNIQUE, DEFENSE_CONTROL, COMPONENT, VULNERABILITY, TOOL, STANDARD, EVALUATION
+Text:
+OWASP Top 10 for LLM Applications describes prompt injection as a risk. Separating trusted instructions from untrusted content and validating tool calls can reduce the chance that injected content controls an agent's tool executor.
+
+Output:
+("entity"<|>OWASP TOP 10 FOR LLM APPLICATIONS<|>STANDARD<|>面向大语言模型应用风险与缓解措施的权威指南。)
+##
+("entity"<|>PROMPT INJECTION<|>ATTACK_TECHNIQUE<|>攻击者通过输入内容操纵模型指令遵循行为的攻击技术。)
+##
+("entity"<|>TRUSTED INSTRUCTION SEPARATION<|>DEFENSE_CONTROL<|>将可信指令与不可信内容隔离以降低内容覆盖指令的风险。)
+##
+("entity"<|>TOOL CALL VALIDATION<|>DEFENSE_CONTROL<|>在执行前验证代理工具调用的目标与参数。)
+##
+("entity"<|>TOOL EXECUTOR<|>COMPONENT<|>负责执行代理所请求工具调用的运行时组件。)
+##
+("relationship"<|>OWASP TOP 10 FOR LLM APPLICATIONS<|>PROMPT INJECTION<|>该标准收录并描述 PROMPT INJECTION 风险。<|>9)
+##
+("relationship"<|>PROMPT INJECTION<|>TOOL EXECUTOR<|>PROMPT INJECTION 针对代理决策并可能控制 TOOL EXECUTOR 的调用行为。<|>8)
+##
+("relationship"<|>TRUSTED INSTRUCTION SEPARATION<|>PROMPT INJECTION<|>TRUSTED INSTRUCTION SEPARATION 通过隔离不可信内容缓解 PROMPT INJECTION。<|>8)
+##
+("relationship"<|>TOOL CALL VALIDATION<|>TOOL EXECUTOR<|>TOOL CALL VALIDATION 在 TOOL EXECUTOR 执行前检查调用。<|>9)
+<|COMPLETE|>
+
+Example 2
+Entity_types: ATTACK_TECHNIQUE, DEFENSE_CONTROL, COMPONENT, VULNERABILITY, TOOL, STANDARD, EVALUATION
+Text:
+RAG poisoning places malicious documents in a retriever's corpus. Requiring signed provenance for every ingested document mitigates this attack and protects the vector store. The attack is more damaging when ingestion accepts untrusted documents without validation.
+
+Output:
+("entity"<|>RAG POISONING<|>ATTACK_TECHNIQUE<|>通过向检索语料注入恶意文档来影响后续生成的攻击技术。)
+##
+("entity"<|>RETRIEVER<|>COMPONENT<|>从语料中选择上下文供模型生成答案的检索组件。)
+##
+("entity"<|>VECTOR STORE<|>COMPONENT<|>保存供检索使用的文档向量与相关数据的组件。)
+##
+("entity"<|>UNVALIDATED DOCUMENT INGESTION<|>VULNERABILITY<|>摄取流程允许未经验证的不可信文档进入检索语料的弱点。)
+##
+("entity"<|>SIGNED DOCUMENT PROVENANCE<|>DEFENSE_CONTROL<|>要求每个摄取文档具有可验证签名来源的控制。)
+##
+("relationship"<|>RAG POISONING<|>RETRIEVER<|>RAG POISONING 通过污染语料针对 RETRIEVER 的上下文选择。<|>9)
+##
+("relationship"<|>RAG POISONING<|>UNVALIDATED DOCUMENT INGESTION<|>RAG POISONING 利用 UNVALIDATED DOCUMENT INGESTION 将恶意文档放入语料。<|>9)
+##
+("relationship"<|>SIGNED DOCUMENT PROVENANCE<|>RAG POISONING<|>SIGNED DOCUMENT PROVENANCE 通过拒绝来源不可验证的文档缓解 RAG POISONING。<|>9)
+##
+("relationship"<|>SIGNED DOCUMENT PROVENANCE<|>VECTOR STORE<|>SIGNED DOCUMENT PROVENANCE 保护 VECTOR STORE 免受未验证内容污染。<|>8)
+<|COMPLETE|>
+
+Example 3
+Entity_types: ATTACK_TECHNIQUE, DEFENSE_CONTROL, COMPONENT, VULNERABILITY, TOOL, STANDARD, EVALUATION
+Text:
+PyRIT orchestrates a multi-turn jailbreak evaluation against a target language model. The evaluation measures whether safety filters resist adaptive jailbreak prompts; PyRIT records the responses for review.
+
+Output:
+("entity"<|>PYRIT<|>TOOL<|>用于编排生成式 AI 红队测试并记录结果的软件工具。)
+##
+("entity"<|>MULTI-TURN JAILBREAK EVALUATION<|>EVALUATION<|>使用自适应多轮提示检验模型安全防护的评估任务。)
+##
+("entity"<|>JAILBREAK<|>ATTACK_TECHNIQUE<|>通过构造提示绕过模型安全限制的攻击技术。)
+##
+("entity"<|>LANGUAGE MODEL<|>COMPONENT<|>接受提示并生成响应的目标模型组件。)
+##
+("entity"<|>SAFETY FILTER<|>DEFENSE_CONTROL<|>用于阻止不安全输入或输出的防御控制。)
+##
+("relationship"<|>PYRIT<|>MULTI-TURN JAILBREAK EVALUATION<|>PYRIT 编排并记录 MULTI-TURN JAILBREAK EVALUATION。<|>10)
+##
+("relationship"<|>MULTI-TURN JAILBREAK EVALUATION<|>LANGUAGE MODEL<|>MULTI-TURN JAILBREAK EVALUATION 检验目标 LANGUAGE MODEL。<|>9)
+##
+("relationship"<|>MULTI-TURN JAILBREAK EVALUATION<|>SAFETY FILTER<|>MULTI-TURN JAILBREAK EVALUATION 评估 SAFETY FILTER 抵抗自适应攻击的能力。<|>9)
+##
+("relationship"<|>JAILBREAK<|>SAFETY FILTER<|>JAILBREAK 试图绕过 SAFETY FILTER。<|>9)
+<|COMPLETE|>
+
+######################
+-Real Data-
+######################
+Entity_types: {entity_types}
+Text: {input_text}
+######################
+Output:

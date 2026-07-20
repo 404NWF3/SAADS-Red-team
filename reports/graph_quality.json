@@ -1,0 +1,756 @@
+{
+  "artifacts": {
+    "documents": 297,
+    "text_units": 403,
+    "entities": 2973,
+    "relationships": 5481,
+    "communities": 636,
+    "community_reports": 630
+  },
+  "entity_types": {
+    "counts": {
+      "ATTACK_TECHNIQUE": 987,
+      "COMPONENT": 949,
+      "DEFENSE_CONTROL": 502,
+      "VULNERABILITY": 292,
+      "TOOL": 114,
+      "EVALUATION": 75,
+      "STANDARD": 51,
+      "PERSON": 2,
+      "API": 1
+    },
+    "expected": [
+      "ATTACK_TECHNIQUE",
+      "COMPONENT",
+      "DEFENSE_CONTROL",
+      "EVALUATION",
+      "STANDARD",
+      "TOOL",
+      "VULNERABILITY"
+    ],
+    "unknown": [
+      "API",
+      "PERSON"
+    ]
+  },
+  "duplicate_or_synonym_candidates": [
+    {
+      "type": "COMPONENT",
+      "canonical": "PROOFPOINTEMAILPROTECTIONSYSTEM",
+      "titles": [
+        "PROOF POINT EMAIL PROTECTION SYSTEM",
+        "PROOFPOINT EMAIL PROTECTION SYSTEM"
+      ]
+    },
+    {
+      "type": "COMPONENT",
+      "canonical": "HUGGINGFACE",
+      "titles": [
+        "HUGGING FACE",
+        "HUGGINGFACE"
+      ]
+    },
+    {
+      "type": "COMPONENT",
+      "canonical": "CLAUDECOMPUTERUSE",
+      "titles": [
+        "CLAUDE COMPUTER USE",
+        "CLAUDE COMPUTER-USE"
+      ]
+    },
+    {
+      "type": "COMPONENT",
+      "canonical": "CLAUDECOMPUTERUSEAGENT",
+      "titles": [
+        "CLAUDE COMPUTER USE AGENT",
+        "CLAUDE COMPUTER-USE AGENT"
+      ]
+    },
+    {
+      "type": "COMPONENT",
+      "canonical": "COMPUTERUSEAGENT",
+      "titles": [
+        "COMPUTER USE AGENT",
+        "COMPUTER-USE AGENT"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "METAPROMPTEXTRACTION",
+      "titles": [
+        "META PROMPT EXTRACTION",
+        "METAPROMPT EXTRACTION"
+      ]
+    },
+    {
+      "type": "COMPONENT",
+      "canonical": "PRETRAINEDMODEL",
+      "titles": [
+        "PRE-TRAINED MODEL",
+        "PRETRAINED MODEL"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "AMLT0015EVADEAIMODEL",
+      "titles": [
+        "AML.T0015 – EVADE AI MODEL",
+        "AML.T0015: EVADE AI MODEL"
+      ]
+    },
+    {
+      "type": "VULNERABILITY",
+      "canonical": "BACKDOOR",
+      "titles": [
+        "BACK DOOR",
+        "BACKDOOR"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "AVSPAMSCANNING",
+      "titles": [
+        "AV SPAM SCANNING",
+        "AV_SPAM_SCANNING"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "LEAKREPLAY",
+      "titles": [
+        "LEAK REPLAY",
+        "LEAKREPLAY"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "PACKAGEHALLUCINATION",
+      "titles": [
+        "PACKAGE HALLUCINATION",
+        "PACKAGEHALLUCINATION"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "REALTOXICITYPROMPTS",
+      "titles": [
+        "REAL TOXICITY PROMPTS",
+        "REALTOXICITYPROMPTS"
+      ]
+    },
+    {
+      "type": "STANDARD",
+      "canonical": "OWASPLLM01",
+      "titles": [
+        "OWASP LLM01",
+        "OWASP:LLM01"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "ANSIESCAPE",
+      "titles": [
+        "ANSI ESCAPE",
+        "ANSIESCAPE"
+      ]
+    },
+    {
+      "type": "ATTACK_TECHNIQUE",
+      "canonical": "LATENTINJECTION",
+      "titles": [
+        "LATENT INJECTION",
+        "LATENTINJECTION"
+      ]
+    },
+    {
+      "type": "TOOL",
+      "canonical": "HUGGINGFACESFCONVERTBOTSCANNER",
+      "titles": [
+        "HUGGINGFACE SFCONVERTBOT SCANNER",
+        "HUGGINGFACE SF_CONVERTBOT SCANNER"
+      ]
+    }
+  ],
+  "relationship_semantics": {
+    "other": 2538,
+    "mitigates": 935,
+    "exploits": 784,
+    "targets": 706,
+    "implements": 694,
+    "detects": 325,
+    "evaluates": 215,
+    "recommends": 46
+  },
+  "relationship_direction_anomalies": [
+    {
+      "source": "MONITORING AND AUDITING",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "MISCONFIGURED REGISTRATION",
+      "target_type": "VULNERABILITY",
+      "description": "MONITORING AND AUDITING 可检测MISCONFIGURED REGISTRATION被利用后的异常活动。"
+    },
+    {
+      "source": "PROVENANCE VALIDATION",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "RAG POISONING",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "PROVENANCE VALIDATION 是一种安全机制，通过验证文档或信息的来源可信度，用于检测和缓解 RAG POISONING 攻击风险。RAG POISONING 是针对检索增强生成系统的攻击方式，攻击者可能通过向知识库注入恶意或虚假文档来操纵模型输出。PROVENANCE VALIDATION 在此场景中作为防御控制措施（DEFENSE_CONTROL），其核心在于对检索到的文档进行来源验证，从而识别并阻止被污染的文档进入生成流程。该机制不改变 RAG POISONING 作为攻击技术（ATTACK_TECHNIQUE）的本质，也不引入固有漏洞（VULNERABILITY），而是通过额外的验证步骤降低攻击的有效性。现有描述一致强调其作用范围仅限于文档来源验证，未说明具体实现细节、验证强度或对全部攻击变种的覆盖能力。"
+    },
+    {
+      "source": "TRUSTED INSTRUCTION SEPARATION",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "PROMPT INJECTION",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "TRUSTED INSTRUCTION SEPARATION（可信指令隔离）是一种用于缓解 PROMPT INJECTION（提示注入）攻击的防御控制措施。该技术通过将不可信内容与指令进行隔离，从而降低提示注入攻击生效的可能性。根据现有描述，其缓解方式可具体表现为：隔离不可信内容以阻止恶意输入影响系统指令；或隔离指令本身，以维护指令边界的完整性。需要注意的是，上述描述均将 TRUSTED INSTRUCTION SEPARATION 定位为针对 PROMPT INJECTION 的缓解手段，并未提供其适用范围、具体实现或有效性边界等信息。"
+    },
+    {
+      "source": "SIGNED DOCUMENT PROVENANCE",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "RAG POISONING",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SIGNED DOCUMENT PROVENANCE 是一种防御控制（DEFENSE_CONTROL），用于缓解 RAG POISONING 攻击（ATTACK_TECHNIQUE）。其具体缓解方式为：通过拒绝不可验证文档来阻止 RAG POISONING；更精确地描述是，通过拒绝来源不可验证的文档来实现缓解。这一机制明确了适用边界——仅针对文档来源的验证环节，不涉及对文档内容真实性的直接判断。在攻击与防御方向上，SIGNED DOCUMENT PROVENANCE 的核心限制在于其依赖于文档的签名与溯源验证能力，若攻击者能够伪造或绕过签名验证，则该防御措施可能失效。此外，该描述未指定所支持的签名标准、文档格式或具体实现技术，亦未说明在不同 RAG 系统架构中的兼容性差异。"
+    },
+    {
+      "source": "CONTENT SECURITY POLICY (CSP)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "CONVERSATION EXFILTRATION",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "CONTENT SECURITY POLICY (CSP) 是一种安全机制，旨在通过指定可执行脚本的合法来源来缓解内容注入攻击。但在应对 CONVERSATION EXFILTRATION 攻击时，CSP 因允许 Google 自有域名下的脚本执行，未能有效缓解此类攻击。CONVERSATION EXFILTRATION 是一种攻击技术，可能利用允许的脚本来源将对话数据外传。两段描述均明确指出，CSP 对该攻击的缓解效果受限，其局限在于所允许的域名白名单（如 Google 自有域名）可能被攻击者利用，从而绕过防护。该信息仅反映 CSP 在这一特定场景下的适用边界，不涉及其他攻击类型或防御控制的有效性。"
+    },
+    {
+      "source": "AML.T0053",
+      "source_type": "ATTACK_TECHNIQUE",
+      "target": "USER APPROVAL PROMPT",
+      "target_type": "DEFENSE_CONTROL",
+      "description": "AML.T0053 的执行可能被 USER APPROVAL PROMPT 阻止或缓解。"
+    },
+    {
+      "source": "JAILBREAK",
+      "source_type": "ATTACK_TECHNIQUE",
+      "target": "GUARDRAIL",
+      "target_type": "DEFENSE_CONTROL",
+      "description": "JAILBREAK 试图绕过 GUARDRAIL，以执行恶意命令或恶意操作。需明确区分：JAILBREAK 是一种 ATTACK_TECHNIQUE，其目标是规避 GUARDRAIL 的限制；GUARDRAIL 是一种 DEFENSE_CONTROL，用于防止恶意行为但可能被绕过。当前描述未指定 GUARDRAIL 的具体类型或生效范围，也未说明 JAILBREAK 是否成功、所针对的模型或系统版本，或是否存在已知的攻击向量与防御控制间的对抗限制。无证据表明该 JAILBREAK 方法已泛化至所有 GUARDRAIL 实例，或特定防护手段能完全阻止此类绕过。保留二者作为攻击与防御的对应关系，不引入额外因果或效果。"
+    },
+    {
+      "source": "Q --TRUST-ALL-TOOLS --NO-INTERACTIVE",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0103",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "Q --TRUST-ALL-TOOLS --NO-INTERACTIVE 被 AML.T0103 利用来部署恶意代理。"
+    },
+    {
+      "source": "INPUT VALIDATION",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "PROMPT INJECTION",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "INPUT VALIDATION 是一种通过过滤机制来缓解 PROMPT INJECTION 攻击的安全实践。根据现有描述，INPUT VALIDATION 主要通过过滤恶意输入的方式，有针对性地缓解 PROMPT INJECTION 攻击。不同来源均一致指出其作用方向为通过过滤手段实现缓解，未提及具体过滤规则或适用范围边界。PROMPT INJECTION 被明确视为攻击类型，而 INPUT VALIDATION 属于防御性控制措施，二者在描述中保持清晰的攻防对应关系。关于过滤的有效性、适用场景或局限性，输入中未提供进一步证据。"
+    },
+    {
+      "source": "AML.M0001",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0002.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0001 是一种缓解措施，通过限制数据集的发布，来防御 AML.T0002.000 及其子技术对生产模型训练数据发起的针对性攻击。该措施的核心边界在于仅针对“生产模型训练数据”这一特定攻击目标，且适用于因数据集公开或过度共享而可能被攻击者利用的场景。需要明确的是，AML.M0001 属于 DEFENSE_CONTROL（防御控制），而非 ATTACK_TECHNIQUE（攻击技术）或 VULNERABILITY（漏洞），其作用方向是削弱 AML.T0002.000 子技术的攻击可行性。描述中未说明该措施的具体实现方式（如访问控制、数据匿名化或发布审批流程），也未明确其对不同攻击阶段（如数据收集、模型训练前后）的覆盖范围。若存在限制条件（例如仅适用于特定类型的数据集或攻击场景），需以原始输入为准，此处未额外引入。"
+    },
+    {
+      "source": "AML.M0001",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0002.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0001 是一种缓解措施，主要针对 AML.T0002.001 这一攻击技术（属于 AML.T0002 的子技术）。该措施实施的方式包括限制模型架构和检查点（checkpoint）的发布，从而缓解对生产模型的针对性攻击。同时，该缓解措施也通过限制模型发布来专门缓解 AML.T0002.001 子技术。AML.M0001 的适用边界和限制条件在现有描述中未明确，但可以确认其防御方向聚焦于阻止攻击者通过获取模型架构或检查点来发起针对性攻击。"
+    },
+    {
+      "source": "AML.M0001",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0005.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0001 是一种针对 AML.T0005.000 子技术的缓解措施。其通过在模型构件发布环节施加限制，来降低 AML.T0005.000 实施“创建精确代理模型”攻击的能力。该缓解措施直接作用于对抗性机器学习攻击链中，旨在阻断攻击者获取模型内部结构或行为细节的途径。需要说明的是，AML.M0001 的适用边界明确限定于 AML.T0005.000 子技术，其有效性依赖于对模型构件发布流程的实际管控强度，且不涉及对其他攻击技术或阶段的防御效果。目前已知该缓解与 AML.T0005.000 存在对应关系，但未提供关于其具体实现方式、部署条件或与其他防御措施交互关系的额外信息。"
+    },
+    {
+      "source": "SANITIZE TRAINING DATA",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "BACKDOOR ATTACK",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SANITIZE TRAINING DATA 通过防止攻击者利用中毒数据集缓解 BACKDOOR ATTACK。"
+    },
+    {
+      "source": "AML.M0013",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0010.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "根据提供的实体与描述信息，合并后的描述如下：\n\nAML.M0013（CODE SIGNING）是一种通过强制签名验证来缓解攻击的防御控制措施，其明确针对 AML.T0010.001（恶意驱动程序/框架）攻击。AML.M0013 通过确保代码具有正确签名，阻止未经签名的恶意驱动程序或框架加载，从而在系统层面形成强制校验机制。这一措施缓解了 AML.T0010.001 攻击，即恶意驱动程序或框架利用未签名或伪造签名代码执行所构成的威胁。注意，AML.M0013 是防御控制（DEFENSE_CONTROL），而 AML.T0010.001 是攻击技术（ATTACK_TECHNIQUE），两者不可混淆。描述中未提供关于该防御控制的其他适用边界、限制或替代攻击方向的信息。"
+    },
+    {
+      "source": "AML.M0013",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0011.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0013（CODE SIGNING）是一种缓解措施，通过代码签名保证软件包的完整性，确保其在签名后未被篡改，从而针对AML.T0011.001提供防护。该措施明确适用于需要验证软件来源和完整性的场景，其有效范围限定于阻止攻击者通过篡改已签名代码实施攻击，但未涵盖绕过签名验证或使用有效签名密钥发起的攻击方向。输入中未提供AML.T0011.001的具体攻击描述，故无法补充其对应的攻击细节。描述中未涉及其他防御控制或漏洞信息。"
+    },
+    {
+      "source": "AML.M0013",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0018.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "根据提供的实体和描述信息，AML.M0013（CODE SIGNING，代码签名）是一种缓解措施，通过确保模型在签名后未被篡改，从而针对AML.T0018.001实施防御。该技术的作用边界在于验证模型文件的完整性和来源真实性，限制攻击者伪造或篡改已签名的机器学习模型。需注意，此处描述仅表明AML.M0013用于缓解AML.T0018.001，未提供其他攻击或防御方向的具体细节。保留正式实体名称AML.M0013与AML.T0018.001，以及技术标识符CODE SIGNING。冲突信息方面，输入中未出现矛盾内容。输出不引入额外事实，例如未提及具体厂商、版本或效果，也未混淆攻击技术、防御控制与脆弱性的概念。总字数符合要求。"
+    },
+    {
+      "source": "AML.M0014",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0002.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0014 是一种缓解措施，专门用于应对 AML.T0002.001 攻击技术。该措施通过实施签名检查机制，确保不安全的 AI 模型不会被引入系统，从而有效缓解 AML.T0002.001 带来的威胁。其适用边界仅限于模型引入阶段，不涉及模型运行或后续使用环节的防护。攻击方向针对绕过或伪造签名验证的尝试，防御方向则要求系统严格验证模型来源和完整性。注意，该描述仅涵盖提供的证据，未进一步定义 AML.M0014 在其他场景下的有效性或限制。"
+    },
+    {
+      "source": "AML.M0014",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0010.002",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0014 是一种缓解措施，专门针对 AML.T0010.002（即数据层面的供应链破坏攻击）。该缓解措施通过实施签名检查机制，确保不安全的AI数据不会被引入系统。其主要目标是防止攻击者通过篡改或替换训练数据、模型数据或相关元数据来破坏AI供应链的数据完整性。描述中一致指出，AML.M0014的适用范围集中在数据层面，而非模型或部署层面，并且依赖签名验证作为具体的防御控制手段。需要注意的是，AML.M0014并不等同于攻击技术或漏洞本身，而是一种防御控制措施，其有效性依赖于签名检查的正确实施和密钥管理安全。对于AML.T0010.002，描述未提及该攻击技术的其他变体或绕过方式，因此缓解作用仅限于描述中明确的签名验证场景。"
+    },
+    {
+      "source": "AML.M0014",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0011",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0014 是一种针对 AML.T0011 的缓解措施，通过签名检查防止不安全的 AI 制品在系统中执行，从而确保不安全的 AI 工件不会被执行。"
+    },
+    {
+      "source": "VULNERABILITY SCANNING",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "PICKLE FILE EXPLOIT",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "VULNERABILITY SCANNING 是一种安全机制，用于识别恶意 AI 制品（如模型或数据），通过扫描 pickle 文件中的不安全调用，防止用户执行，从而缓解 PICKLE FILE EXPLOIT。PICKLE FILE EXPLOIT 是指利用 pickle 文件反序列化过程中不安全调用进行攻击的技术。VULNERABILITY SCANNING 的适用边界包括对 pickle 文件内容的扫描，限制在于其有效性依赖对不安全调用的检测能力；攻击方向为绕过扫描机制或利用未被覆盖的不安全调用，防御方向为加强扫描规则并限制 pickle 文件执行权限。该描述未涉及特定厂商、版本或因果关系，且明确区分了 VULNERABILITY SCANNING（防御控制）与 PICKLE FILE EXPLOIT（攻击技术）。"
+    },
+    {
+      "source": "AML.M0018",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0011.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0018 是一种针对 AML.T0011.001 攻击的缓解措施，其核心方法是通过对用户进行培训。具体而言，AML.M0018 的培训内容旨在帮助用户识别操纵尝试，从而防止用户运行来自外部包的不安全代码。该缓解手段的适用边界明确限定为阻止 AML.T0011.001 攻击，即通过提升用户对恶意包或不安全代码的防范意识，来降低攻击成功执行的风险。在两个描述中均未提及对防御效果的绝对保证、特定厂商或版本依赖，亦未引入其他未列出的攻击或防御方向。需注意，AML.M0018 作为对抗性攻击缓解（DEFENSE_CONTROL）机制，其本身并非脆弱点（VULNERABILITY）或具体攻击步骤（ATTACK_TECHNIQUE），而是针对 AML.T0011.001 这一技术标识符所指代的行为提供抵消措施。输出信息保持对原始输入中互补描述的综合，并保留“通过培训用户防止运行外部恶意包”与“通过培训用户识别操纵尝试”两者的一致性。"
+    },
+    {
+      "source": "AML.M0019",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0005",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0019 是一种用于缓解 AML.T0005 技术的防御控制措施。具体而言，AML.M0019 通过实施模型API访问控制来缓解 AML.T0005 所描述的代理模型攻击。需要明确的是，AML.M0019 的缓解作用直接针对 AML.T0005 技术本身，其生效方式限定于通过模型API访问控制这一路径。以上信息中未提及 AML.M0019 对其他攻击技术或场景的适用性，也未涉及该缓解措施的具体实现细节、版本或效果评估。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0053",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0053，阻止攻击者利用工具执行不安全操作影响其他组件。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0085",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0085，阻止攻击者利用工具从AI服务收集敏感数据。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0085.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0085.000，阻止攻击者利用工具从RAG数据库收集敏感数据。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0085.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0085.001，阻止攻击者利用工具收集敏感数据。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0086",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0086，阻止攻击者利用工具破坏敏感数据源。"
+    },
+    {
+      "source": "SEGMENTATION OF AI AGENT COMPONENTS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0098",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "SEGMENTATION OF AI AGENT COMPONENTS缓解AML.T0098，阻止攻击者利用工具窃取凭证。"
+    },
+    {
+      "source": "LIMIT DATASET RELEASE",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "ACQUIRE PUBLIC AI ARTIFACTS",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "该控制通过限制数据集发布缓解针对数据集的ACQUIRE PUBLIC AI ARTIFACTS。"
+    },
+    {
+      "source": "LIMIT MODEL RELEASE",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "ACQUIRE PUBLIC AI ARTIFACTS",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "该控制通过限制模型发布缓解针对模型的ACQUIRE PUBLIC AI ARTIFACTS。"
+    },
+    {
+      "source": "SIGNATURE CHECKING FOR AI MODELS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "ACQUIRE PUBLIC AI ARTIFACTS",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "该控制通过签名检查防止不安全的AI模型被系统引入，从而缓解针对模型的攻击。"
+    },
+    {
+      "source": "RESTRICTED LIBRARY LOADING",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "MALICIOUS CODE EXECUTION",
+      "target_type": "VULNERABILITY",
+      "description": "RESTRICTED LIBRARY LOADING 限制库加载以降低恶意代码执行的弱点被利用的可能性。"
+    },
+    {
+      "source": "AML.M0007",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0018.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0007 防止利用投毒数据集进行后门攻击，缓解 AML.T0018.000。"
+    },
+    {
+      "source": "AML.M0008",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0018.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "根据提供的信息，AML.M0008 是一种针对 AML.T0018.000 的缓解措施。其主要功能是确保训练后的模型不会响应后门触发器或受到对抗性影响。该缓解措施通过验证模型来阻止后门触发器的激活，从而降低 AML.T0018.000 所描述的攻击风险。"
+    },
+    {
+      "source": "AML.M0008",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0018.001",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "AML.M0008 是一种缓解措施，用于应对 AML.T0018.001 攻击技术。该措施旨在确保获取的模型不响应后门触发器或对抗性影响，从而缓解 AML.T0018.001 所利用的后门触发机制。具体而言，通过验证获取的模型不响应后门触发器，AML.M0008 直接针对 AML.T0018.001 进行防御，但未限定验证方法的具体步骤或适用环境。对于冲突信息，两份描述均一致强调通过“验证后门触发器不响应”实现缓解，未发现矛盾点。实体名称和标识符已按原有格式保留。"
+    },
+    {
+      "source": "POISONED DATASET PREVENTION",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "POISON AI MODEL",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "POISONED DATASET PREVENTION 阻止利用有毒数据集实施 POISON AI MODEL 攻击。"
+    },
+    {
+      "source": "ERODE AI MODEL INTEGRITY",
+      "source_type": "ATTACK_TECHNIQUE",
+      "target": "HARDENED MODEL",
+      "target_type": "DEFENSE_CONTROL",
+      "description": "ERODE AI MODEL INTEGRITY 针对模型完整性，HARDENED MODEL 可缓解该攻击。"
+    },
+    {
+      "source": "ERODE AI MODEL INTEGRITY",
+      "source_type": "ATTACK_TECHNIQUE",
+      "target": "INPUT PREPROCESSING",
+      "target_type": "DEFENSE_CONTROL",
+      "description": "INPUT PREPROCESSING 阻止恶意数据进入流水线以缓解 ERODE AI MODEL INTEGRITY。"
+    },
+    {
+      "source": "ERODE AI MODEL INTEGRITY",
+      "source_type": "ATTACK_TECHNIQUE",
+      "target": "ADVERSARIAL INPUT DETECTION",
+      "target_type": "DEFENSE_CONTROL",
+      "description": "ADVERSARIAL INPUT DETECTION 在输入到达模型前检测对抗性输入以缓解 ERODE AI MODEL INTEGRITY。"
+    },
+    {
+      "source": "ACCESS CONTROLS",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0043.000",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "ACCESS CONTROLS 是一种缓解措施，针对 AML.T0043.000 子技术及其相关攻击。其作用方式是通过限制白盒访问来实施防御控制，从而减少该攻击向量的可利用性。输入中未明确提及该缓解措施的具体适用边界、限制条件或可能的副作用；也未描述 AML.T0043.000 攻击的具体方向或技术细节。根据现有信息，ACCESS CONTROLS 仅被描述为一种防御控制（DEFENSE_CONTROL），而非攻击技术（ATTACK_TECHNIQUE）或漏洞（VULNERABILITY）。"
+    },
+    {
+      "source": "AML.M0005",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "AML.T0048.004",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "根据提供的实体名称和描述，AML.M0005 是一种缓解措施，专门针对 AML.T0048.004 模型提取/蒸馏攻击。该缓解手段通过实施访问控制，可有效缓解 AML.T0048.004 子技术，其目的在于防止知识产权被盗。目前信息未明确访问控制的具体实现方式、适用范围或局限性，也未提供攻击路径或防御控制之间的具体因果关系。实体 AML.T0048.004 是攻击技术下的子技术，其对抗对象为模型提取或蒸馏攻击；AML.M0005 则是针对该技术的防御控制。需注意，AML.M0005 作为缓解措施，并不等同于漏洞（Vulnerability），也不构成具体的攻击技术（Attack Technique）或防御控制（Defense Control）以外的实体类型。输入中未提供有关攻击或缓解性能的量化数据、厂商信息或版本说明。"
+    },
+    {
+      "source": "TELEMETRY LOGGING (AML.M0024)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.000)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "TELEMETRY LOGGING (AML.M0024) 可识别针对 LLM PROMPT INJECTION (AML.T0051.000) 的不安全提示提交。"
+    },
+    {
+      "source": "TELEMETRY LOGGING (AML.M0024)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.001)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "TELEMETRY LOGGING (AML.M0024) 可识别针对 LLM PROMPT INJECTION (AML.T0051.001) 的不安全提示提交。"
+    },
+    {
+      "source": "TELEMETRY LOGGING (AML.M0024)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.002)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "TELEMETRY LOGGING (AML.M0024) 可识别针对 LLM PROMPT INJECTION (AML.T0051.002) 的不安全提示提交。"
+    },
+    {
+      "source": "VALIDATION (AML.M0033)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.000)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "VALIDATION (AML.M0033) 可防止针对 LLM PROMPT INJECTION (AML.T0051.000) 的注入影响代理工作流。"
+    },
+    {
+      "source": "VALIDATION (AML.M0033)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.001)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "VALIDATION (AML.M0033) 可防止针对 LLM PROMPT INJECTION (AML.T0051.001) 的注入影响代理工作流。"
+    },
+    {
+      "source": "VALIDATION (AML.M0033)",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "LLM PROMPT INJECTION (AML.T0051.002)",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "VALIDATION (AML.M0033) 可防止针对 LLM PROMPT INJECTION (AML.T0051.002) 的注入影响代理工作流。"
+    },
+    {
+      "source": "TELEMETRY LOGGING",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "DIRECT",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "TELEMETRY LOGGING 是一种通过识别提交给大型语言模型（LLM）的不安全提示来缓解 DIRECT 攻击的方法。其作用机制在于分析并检测可能用于 DIRECT 攻击的提示内容，从而提供防御能力。DIRECT 则代表一种针对 LLM 的攻击方向。目前描述中未明确 TELEMETRY LOGGING 的适用边界或具体限制，也未说明该技术是否覆盖所有类型的 DIRECT 攻击或存在误报/漏报风险。"
+    },
+    {
+      "source": "USER PHISHING AWARENESS TRAINING",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "SPEARPHISHING VIA SOCIAL ENGINEERING LLM",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "USER PHISHING AWARENESS TRAINING 帮助用户识别 AI 生成的针对性钓鱼消息以缓解 SPEARPHISHING VIA SOCIAL ENGINEERING LLM。"
+    },
+    {
+      "source": "DEEPFAKE DETECTION",
+      "source_type": "DEFENSE_CONTROL",
+      "target": "PHISHING",
+      "target_type": "ATTACK_TECHNIQUE",
+      "description": "DEEPFAKE DETECTION 用于识别和阻止利用生成内容的 PHISHING 尝试。"
+    }
+  ],
+  "degree": {
+    "minimum": 0,
+    "median": 2.0,
+    "p95": 13.0,
+    "maximum": 530,
+    "isolated_count": 254,
+    "isolated_ratio": 0.0854,
+    "isolated_sample": [
+      "MODEL ENSEMBLING",
+      "REPUTATIONAL DAMAGE",
+      "MICROSOFT AI RED TEAM",
+      "AML.TA0000",
+      "PYTORCH-NIGHTLY",
+      "STREAMLIT APPLICATION",
+      "ENVIRONMENT VARIABLES",
+      "SELFIE SUBMISSION",
+      "ID PHOTO UPLOAD",
+      "GENAI MODEL API",
+      "MODEL INTEGRITY EROSION",
+      "DATASET INTEGRITY EROSION",
+      "ATTACK TECHNIQUE PROBING",
+      "EASYEDIT KNOWLEDGE EDITING",
+      "VICTIM ORGANIZATION ENVIRONMENT",
+      "CREDENTIAL EXFILTRATION",
+      "FINANCIAL AND REPUTATIONAL HARM",
+      "RESEARCHER",
+      "EMPLOYEE",
+      "PRIVATE MODEL",
+      "ONNX FORMAT",
+      "LLM RESOURCE ACCESS VERIFICATION",
+      "INVOKEMODEL",
+      "ACCESSDENIED ERROR",
+      "DEEPFAKE TOOL"
+    ]
+  },
+  "communities": {
+    "report_count": 630,
+    "missing_title_count": 0,
+    "missing_content_count": 0,
+    "top_reports": [
+      {
+        "community": 513,
+        "title": "PROMPT INJECTION 攻击与防御社区分析",
+        "summary": "本社区围绕 LLM 应用中的 PROMPT INJECTION 攻击技术展开，涵盖其利用的弱点、受影响组件、防御控制及评估工具。核心攻击技术 PROMPT INJECTION 利用“可信指令与不可信数据共享同一通道”的弱点，可覆盖系统指令、泄露 API 密钥、操纵企业搜索功能等。多个防御控制（如 TRUSTED INSTRUCTION SEPARATION、PROMPT FILTERING）旨在缓解该攻击，而 OWASP TOP 10 标准将其列为关键风险。社区知识对构建防御架构和红队评估具有较高重要性。",
+        "rank": 9.5
+      },
+      {
+        "community": 203,
+        "title": "LLM提示注入社区：攻击路径与关键组件分析",
+        "summary": "该社区聚焦于LLM提示注入攻击及其在工单系统和AI开发环境中的利用方式。核心攻击技术为LLM PROMPT INJECTION，通过间接注入（如恶意Jira工单）或驱动访问（Drive-by Compromise）操纵AI代理（Claude Sonnet、Cursor）。关键组件包括Atlassian MCP Server、WebPilot插件等。防御需关注输入过滤、权限控制及MCP服务器安全。社区评级为9.0，因其覆盖了企业级LLM应用的典型攻击面。",
+        "rank": 9.0
+      },
+      {
+        "community": 10,
+        "title": "LLM应用防御社区：代理模型攻击与缓解措施分析",
+        "summary": "该社区聚焦于攻击者通过创建代理模型（PROXY MODEL）来近似目标AI模型行为，从而实施模型规避、信息窃取等攻击。核心技术包括AML.T0005及其子技术AML.T0005.001，通过反复查询受害者模型的推理API（AI MODEL INFERENCE API ACCESS）训练代理模型。防御控制方面，限制查询数（AML.M0004、QUERY RATE LIMITING）和被动输出混淆（PASSIVE AI OUTPUT OBFUSCATION）被明确用于缓解此类攻击，而遥测日志（TELEMETRY LOGGING）可辅助检测代理训练行为。此外，攻击还涉及成本收割（AML.T0034）和敏感信息窃取（EXFILTRATION VIA AI INFERENCE API），影响生成式AI、预测性AI和智能体AI平台。红队可借助无审查模型（WHITERABBITNEO）和恶意工具（WORMGPT）实施攻击。该社区对防御架构设计具有较高参考价值，凸显了查询限制和输出模糊化的重要性。",
+        "rank": 8.5
+      },
+      {
+        "community": 9,
+        "title": "AI编码助手规则文件投毒与输出操控攻击社区",
+        "summary": "该社区聚焦于针对AI编码助手（如GitHub Copilot、Cursor）的规则文件投毒攻击技术，攻击者通过篡改规则文件（RULES FILE BACKDOOR）注入恶意指令，利用不可见Unicode字符隐藏提示，或在配置更新中植入恶意规则（CONFIGURATION REPLACEMENT），从而操纵编码助手生成含后门、数据泄露代码或漏洞的代码（COMPROMISED CODE GENERATION）。攻击还涉及输出组件操控（LLM TRUSTED OUTPUT COMPONENTS MANIPULATION），包括引用操纵（CITATION MANIPULATION）和语言操纵（OUTPUT LANGUAGE MANIPULATION），以逃避检测并误导用户。防御方面，存在少量控制如隐藏Unicode文本警告（HIDDEN UNICODE TEXT WARNING），但总体缺乏对规则文件完整性和输出清理的强控制。该社区对理解LLM供应链攻击和设计防御策略具有较高知识价值。",
+        "rank": 8.5
+      },
+      {
+        "community": 20,
+        "title": "LLM提示注入与线程上下文投毒社区分析",
+        "summary": "本社区围绕LLM提示注入攻击及其在对话线程中的持久化展开，涵盖了直接与间接注入、线程上下文投毒、以及基于验证、日志、访问控制等防御策略。关键攻击包括AML.T0051系列变体和AI AGENT CONTEXT POISONING VIA THREAD，弱点涉及共享线程和大上下文窗口。防御控制如VALIDATION和TELEMETRY LOGGING被明确用于缓解攻击。案例AML.CS0060和AML.CS0062提供了攻击和评估场景。社区知识对构建防御架构和红队评估具有重要价值。",
+        "rank": 8.5
+      },
+      {
+        "community": 19,
+        "title": "LLM服务凭证滥用与深度伪造辅助钓鱼社区",
+        "summary": "本社区围绕LLM服务凭证滥用（LLM Jacking）和深度伪造辅助钓鱼（Deepfake-Assisted Phishing）两大攻击集群展开。LLM Jacking利用被盗云凭证（STOLEN CLOUD CREDENTIALS）访问云托管LLM服务，并通过反向代理或商业代理服务转售访问权限，API调用监控和凭证使用监控是主要检测控制。深度伪造辅助钓鱼通过生成深度伪造内容（GENERATE DEEPFAKES、VOICE DEEPFAKE、VIDEO DEEPFAKE）增强钓鱼（PHISHING）可信度，技术深度伪造检测和独立验证是缓解控制。社区涵盖攻击技术、弱点、组件、控制、工具、标准与案例，关系清晰，防御意义明确。",
+        "rank": 8.5
+      },
+      {
+        "community": 17,
+        "title": "公开AI工件获取与防御：基于LLM应用安全的社区分析",
+        "summary": "社区以公开AI工件获取（AML.T0002.001: MODELS）为核心攻击技术，利用模型架构和预训练模型等弱点，通过搜索受害者网站、公开技术数据库等技术实施。防御控制包括限制模型和数据集发布、签名检查等，标准MITRE ATLAS提供框架支持。社区知识重要性高，因模型发布普遍且攻击门槛低。",
+        "rank": 8.5
+      },
+      {
+        "community": 16,
+        "title": "LLM应用安全防御知识图谱分析：系统信息侦察与混淆攻击",
+        "summary": "本社区聚焦于LLM系统中的信息侦察与提示混淆攻击技术，涵盖系统提示探测、控制序列识别、匿名AI助手中继攻击以及虚假RAG注入等关键攻击面。实体关系揭示了攻击如何探测并利用系统组件弱点，以及防御控制（如身份验证、监控工具）在缓解攻击中的作用。社区整体知识重要性高，尤其对理解对抗性侦察与混淆技术具有价值。",
+        "rank": 8.5
+      },
+      {
+        "community": 14,
+        "title": "AI供应链攻击与防御：ML供应链投毒、凭证泄露与扩展漏洞",
+        "summary": "本社区围绕AI供应链攻击展开，聚焦于AML.T0010.001及其子技术（如AI SUPPLY CHAIN RUG PULL、PUBLISH HALLUCINATED ENTITIES等），这些技术通过投毒依赖包、发布幻觉实体或利用扩展仓库分发恶意代码，攻击深度学习框架、生成式AI框架、推理引擎等组件。同时，UNSECURED CREDENTIALS攻击从环境变量、SSH密钥、云密钥等获取凭证，而AI SUPPLY CHAIN REPUTATION INFLATION则通过操纵信誉信号绕过信任检查。防御控制（如ADDITIONAL SCRUTINY、REVOKED EXTENSION VERSION AND RELEASE PATCH）虽存在但可被绕过（如EVASION OF SCANNING）。核心弱点包括PACKAGE INSTALLATION PRIORITY、REPUTATION SIGNAL及代码部署到扩展等。该社区对理解LLM应用防御具有重要参考价值，凸显了供应链攻击的多样性与防御挑战。",
+        "rank": 8.5
+      },
+      {
+        "community": 12,
+        "title": "AI代理提示注入与配置发现攻击及防御分析",
+        "summary": "该社区聚焦于AI代理在提示注入攻击下的工具滥用、数据泄露风险，以及攻击者通过配置发现（AML.T0084.002、AML.T0051）获取敏感资源（CRM、Salesforce记录、凭证）的过程。防御控制如GENERATIVE AI GUARDRAILS、AML.M0021: GENERATIVE AI GUIDELINES被用于缓解相关攻击，并通过工具（NVIDIA NEMO GUARDRAILS、AZURE AI CONTENT SAFETY）实施。社区还涉及静态分析检测远程代码执行风险。知识重要性高，因涵盖了攻击面、防御措施及评估阶段。",
+        "rank": 8.5
+      },
+      {
+        "community": 23,
+        "title": "LLM桌面应用内存攻击与防御分析：以AIKATZ为例",
+        "summary": "该社区聚焦于针对LLM桌面应用的攻击技术AIKATZ，该技术通过进程内存扫描提取认证令牌，进而冒充用户操纵对话历史。核心弱点包括未受信任的进程内存访问和缺失聊天历史完整性检查。当前防御状态存在争议：部分供应商将此类攻击视为本地攻击，拒绝修复。社区知识对于红队评估和风险治理至关重要，强调了进程隔离、令牌生命周期管理及数据完整性验证的必要性。",
+        "rank": 8.5
+      },
+      {
+        "community": 22,
+        "title": "提示注入攻击链与防御分析",
+        "summary": "该社区聚焦于提示注入（PROMPT INJECTION）作为核心攻击技术，揭示了它利用系统提示与不可信数据共享通道的弱点，操纵工具执行器、AI代理等组件，并指向MATGPT、AMAZON Q AGENT等多个目标。防御控制包括输入验证、可信指令分离等，OWASP TOP 10 作为标准收录了该风险。社区对理解LLM应用攻击面和设计防御架构具有重要参考价值。",
+        "rank": 8.5
+      },
+      {
+        "community": 634,
+        "title": "过度授权弱点与最小权限防御的社区分析",
+        "summary": "该社区聚焦于LLM应用中的过度授权（EXCESSIVE AGENCY）弱点及其缓解控制。核心结构包括：EXCESSIVE AGENCY作为设计弱点，其子弱点EXCESSIVE AUTONOMY，及被滥用的组件如FUNCTIONS、TOOLS和LLM AGENT；HALLUCINATION/CONFABULATION作为触发条件；防御控制方面，LEAST PRIVILEGE原则、MINIMIZE EXTENSIONS和MINIMIZE EXTENSION FUNCTIONALITY被明确用于缓解该弱点；评估工具SLACK AI DATA EXFIL FROM PRIVATE CHANNELS演示了利用该弱点的攻击。社区强调了最小权限原则在限制权限、减少攻击面方面的防御意义。",
+        "rank": 8.5
+      },
+      {
+        "community": 598,
+        "title": "garak框架检测器组件及其在LLM安全评估中的核心作用",
+        "summary": "该社区聚焦于garak框架中的DETECTOR组件及其关联实体。DETECTOR是核心检测机制，用于评估探针（probe）结果并标记失败响应，识别模型输出中的失效模式。它通过分析攻击尝试的输出检测漏洞利用（VULNERABILITY EXPLOITATION）引起的失败。EVALUATOR负责将DETECTOR的判断转换为通过/失败数据。PASS DETECTOR是一种始终返回通过的测试用检测器。DETECTOR需针对标记基准数据集（LABELED BENCHMARK DATASET）进行评估以衡量性能，其基类为GARAK DETECTORS.BASE，并遵循BCP47语言标准和MISP分类格式。防御意义：该组件支撑了LLM安全评估中的自动检测能力，是红队评估和风险治理的基础设施。",
+        "rank": 8.5
+      },
+      {
+        "community": 226,
+        "title": "配置文件明文凭证泄露：LLM应用凭证获取技术",
+        "summary": "该社区聚焦于攻击者利用AML.T0083技术访问配置文件中存储的明文凭证，特别是ClawdBot配置文件。核心攻击技术为凭证访问，通过读取未加密的配置文件获取API密钥、机器人令牌等敏感信息。主要弱点在于配置文件存储明文凭证，导致攻击者可以窃取服务凭据。当前社区未提供防御控制或缓解措施，表明该风险在分析范围内未被解决。重要性高，因为凭证泄露可直接导致系统被接管。",
+        "rank": 8.5
+      },
+      {
+        "community": 215,
+        "title": "AI代理工具供应链攻击与数据窃取防御",
+        "summary": "该社区聚焦于AI代理工具调用过程中的数据窃取攻击（EXFILTRATION VIA AI AGENT TOOL INVOCATION）及其变体，以及相应的防御控制。攻击利用AI AGENT TOOL的写操作能力，通过创建文档、更新CRM记录或生成媒体等方式窃取数据。弱点涉及工具供应链（TOOL SUPPLY CHAIN）、不受信任的工具仓库（UNTRUSTED TOOL REPOSITORY）和开源软件仓库（OPEN-SOURCE SOFTWARE REPOSITORY），这些环境缺乏安全防护，使得中毒工具得以传播。防御控制包括用户确认（USER CONFIRMATION）、日志记录（LOG AI AGENT TOOL INVOCATIONS）、访问控制（PROPER ACCESS CONTROL FOR TOOL USE、USER-INHERITED PERMISSIONS FOR TOOL USE、ACCESS CONTROL INHERITED FROM USER OR AGENT FOR TOOLS）以及限制自动工具使用（RESTRICT AUTOMATIC TOOL USE WHEN UNTRUSTED DATA PRESENT）。社区知识重要性高，为防御架构和红队评估提供了具体攻击路径和缓解措施。",
+        "rank": 8.5
+      },
+      {
+        "community": 620,
+        "title": "基于系统提示泄露与注入的LLM攻击与防御社区",
+        "summary": "该社区聚焦于攻击者利用或绕过SYSTEM PROMPT的多种技术，以及相应的防御控制。核心攻击包括：通过直接提示注入提取元提示（AML.T0051.000），利用泄露的系统指令实施注入绕过（INJECTION TO BYPASS INSTRUCTIONS），通过上下文注入覆盖指令（CONTEXT INJECTION），以及通过图像Markdown注入绕过指令（IMAGE MARKDOWN INJECTION）。攻击者还可通过提示`cat SOUL.md`发现存储的系统指令（SYSTEM PROMPT -> SOUL.MD）。防御措施为CONCEAL SYSTEM PREAMBLE，旨在限制用户访问SYSTEM PROMPT。社区揭示了系统提示作为关键攻击面，其保护对LLM应用安全至关重要。",
+        "rank": 8.5
+      },
+      {
+        "community": 457,
+        "title": "AI Web界面未授权访问弱点及其对身份验证控制的威胁",
+        "summary": "该社区围绕“ANONYMOUS OR UNAUTHENTICATED ACCESS”弱点（实体979）构建，该弱点允许未授权用户通过AI Web界面执行浏览、摘要和URL获取等操作。此弱点被识别为使多种身份验证控制失效的根源，包括API KEY、SERVICE ACCOUNT、USER IDENTITY和REVOCABLE CREDENTIAL。防御架构需优先修复未授权访问，否则现有的身份验证控制将失去效力。红队评估应以此弱点作为突破点，风险治理则需关注该弱点导致的权限滥用风险。",
+        "rank": 8.5
+      },
+      {
+        "community": 234,
+        "title": "LLM越狱攻击技术社区",
+        "summary": "该社区聚焦LLM越狱攻击技术，识别出核心攻击技术LLM JAILBREAK，其通过多种变体（如DAN、AUTODAN、CRESCENDO等）利用模型弱点（如拒绝机制、安全对齐行为），并可能操纵模型权重以实现防御规避。攻击技术关联MITRE ATLAS战术阶段AML.TA0012。现有工具（如GPTFUZZER、PROMPTFOO、JAILBREAKZOO）支持攻击生成和测试，但防御控制（如CONTENT FILTER）被明确作为攻击绕过目标。社区知识重要性高，为红队评估和防御设计提供关键参考。",
+        "rank": 8.5
+      },
+      {
+        "community": 628,
+        "title": "LLM 输出安全与攻击探测社区",
+        "summary": "本社区聚焦于大型语言模型应用中的输出安全风险，核心弱点为 INSECURE OUTPUT HANDLING 和 TOXIC OUTPUT。攻击者使用 ATKGEN PROBE 探测多种模型（包括 OpenAI、Replicate、Cohere、Groq、GGML、AWS Bedrock 及 REST 生成器）以获取有毒输出。防御重点在于对模型输出进行严格的验证与过滤，防止输出被注入下游系统。",
+        "rank": 8.5
+      }
+    ]
+  },
+  "attack_defense_path_coverage": {
+    "max_hops": 2,
+    "attack_count": 987,
+    "covered_count": 728,
+    "coverage_ratio": 0.7376,
+    "uncovered_sample": [
+      "A06:2021 – VULNERABLE AND OUTDATED COMPONENTS",
+      "ACCOUNT FRAUD",
+      "ACTUAL SNIPPET SPECIFIER EXPLOITATION",
+      "ADDITION OF ADAPTERS (LORA)",
+      "ADVERSARIAL AI ATTACK IMPLEMENTATIONS",
+      "ADVERSARIAL EXAMPLE GENERATION",
+      "ADVERSARIAL EXAMPLES",
+      "ADVERSARIAL MALWARE GENERATION",
+      "ADVERSARIAL MODEL UPLOAD",
+      "ADVERSARIAL PROMPT",
+      "AFFIRMATION",
+      "AI DEVELOPMENT WORKSPACES",
+      "AI-POWERED VOICE SPOOFING",
+      "AML.CS0004",
+      "AML.CS0029",
+      "AML.CS0041",
+      "AML.CSOO37",
+      "AML.T0001",
+      "AML.T0008.000",
+      "AML.T0008.002",
+      "AML.T0008.003",
+      "AML.T0008.004",
+      "AML.T0015: EVADE AI MODEL",
+      "AML.T0016.002",
+      "AML.T0043: CRAFT ADVERSARIAL DATA",
+      "AML.T0046: SPAMMING AI SYSTEM WITH CHAFF DATA",
+      "AML.T0060",
+      "AML.T0076",
+      "AML.T0083",
+      "AML.T0091.001",
+      "AML.T0092",
+      "AML.T0095",
+      "AML.T0113",
+      "AML.TA0000",
+      "ANSIESCAPE",
+      "API LIMITS MANIPULATION",
+      "APT28",
+      "ATTACK TECHNIQUE PROBING",
+      "ATTACKER FINETUNES POPULAR MODEL",
+      "ATTRIBUTION EVASION",
+      "AUTHENTICATION BYPASS",
+      "AUTHENTICATION TOKEN EXTRACTION",
+      "AV_SPAM_SCANNING",
+      "BACKDOOR ATTACKS ON AI MODELS",
+      "BACKDOOR IMPLANT",
+      "BACKDOOR INJECTION",
+      "BENIGN-LOOKING PRODUCT INFORMATION REQUEST",
+      "CAPABILITY EXTRACTION PROMPTING",
+      "CAPABILITY THEFT",
+      "CATO NETWORKS RESEARCHERS"
+    ]
+  }
+}

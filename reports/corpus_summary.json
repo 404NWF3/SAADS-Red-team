@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-07-18T08:00:14+00:00",
+  "document_count": 297,
+  "sources": {
+    "MITRE ATLAS": 271,
+    "Microsoft PyRIT": 1,
+    "NVIDIA garak": 15,
+    "OWASP Top 10 for LLM Applications 2025": 10
+  },
+  "source_types": {
+    "authoritative_framework": 281,
+    "official_tool_documentation": 16
+  },
+  "security_domains": {
+    "adversarial_ml": 271,
+    "ai_red_teaming": 1,
+    "llm_application_security": 10,
+    "llm_vulnerability_evaluation": 15
+  },
+  "errors": [],
+  "manifest": "reports/corpus_manifest.csv",
+  "graphrag_input": "input/_corpus.json"
+}

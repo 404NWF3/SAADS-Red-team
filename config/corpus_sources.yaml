@@ -1,0 +1,66 @@
+sources:
+  mitre_atlas:
+    kind: atlas_yaml
+    name: MITRE ATLAS
+    source_page: https://github.com/mitre-atlas/atlas-data
+    download_url: https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/ATLAS-latest.yaml
+    source_type: authoritative_framework
+    security_domain: adversarial_ml
+    trust_level: authoritative
+    license: Apache-2.0
+    groups:
+      - techniques
+      - mitigations
+      - case-studies
+
+  owasp_llm_top10:
+    kind: html_pages
+    name: OWASP Top 10 for LLM Applications 2025
+    source_page: https://genai.owasp.org/llm-top-10/
+    source_type: authoritative_framework
+    security_domain: llm_application_security
+    trust_level: authoritative
+    license: CC-BY-SA-4.0
+    document_version: "2025"
+    published_at: "2025-01-01"
+    pages:
+      - https://genai.owasp.org/llmrisk/llm01-prompt-injection/
+      - https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/
+      - https://genai.owasp.org/llmrisk/llm032025-supply-chain/
+      - https://genai.owasp.org/llmrisk/llm042025-data-and-model-poisoning/
+      - https://genai.owasp.org/llmrisk/llm052025-improper-output-handling/
+      - https://genai.owasp.org/llmrisk/llm062025-excessive-agency/
+      - https://genai.owasp.org/llmrisk/llm072025-system-prompt-leakage/
+      - https://genai.owasp.org/llmrisk/llm082025-vector-and-embedding-weaknesses/
+      - https://genai.owasp.org/llmrisk/llm092025-misinformation/
+      - https://genai.owasp.org/llmrisk/llm102025-unbounded-consumption/
+
+  pyrit:
+    kind: github_docs
+    name: Microsoft PyRIT
+    repo: Azure/PyRIT
+    branch: main
+    source_type: official_tool_documentation
+    security_domain: ai_red_teaming
+    trust_level: official_project
+    license: MIT
+    include:
+      - README.md
+    max_documents: 3
+    min_words: 40
+
+  garak:
+    kind: github_docs
+    name: NVIDIA garak
+    repo: NVIDIA/garak
+    branch: main
+    source_type: official_tool_documentation
+    security_domain: llm_vulnerability_evaluation
+    trust_level: official_project
+    license: Apache-2.0
+    include:
+      - README.md
+      - docs/**/*.md
+      - docs/**/*.rst
+    max_documents: 15
+    min_words: 100
