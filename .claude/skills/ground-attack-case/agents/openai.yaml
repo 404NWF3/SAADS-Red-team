@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ground Attack Case"
+  short_description: "Ground an offline case in security GraphRAG"
+  default_prompt: "Use $ground-attack-case to ground this supported offline attack case in the project security graph."
