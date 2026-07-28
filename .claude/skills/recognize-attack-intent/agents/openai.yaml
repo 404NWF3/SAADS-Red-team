@@ -1,0 +1,4 @@
+interface:
+  display_name: "Recognize Attack Intent"
+  short_description: "Ground attack intent in the security graph"
+  default_prompt: "Use $recognize-attack-intent to classify this attack request with project GraphRAG evidence."
