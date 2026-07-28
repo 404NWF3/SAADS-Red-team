@@ -11,6 +11,7 @@ from typing import Any, Protocol, TypeVar, cast
 
 from claude_agent_sdk import (
     ClaudeAgentOptions,
+    ClaudeSDKError,
     ResultMessage,
     query,
 )
@@ -73,6 +74,23 @@ class AgentBackend(Protocol):
         evidence: list[GraphEvidence],
     ) -> OutputModel:
         raise NotImplementedError
+
+
+def _sdk_output_schema(output_model: type[BaseModel]) -> dict[str, Any]:
+    """Remove Pydantic annotations unsupported by the SDK strict validator."""
+
+    def normalize(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: normalize(item)
+                for key, item in value.items()
+                if key != "discriminator"
+            }
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        return value
+
+    return cast(dict[str, Any], normalize(output_model.model_json_schema()))
 
 
 def _deepseek_environment(environment: Mapping[str, str]) -> dict[str, str]:
@@ -139,7 +157,7 @@ class ClaudeAgentBackend:
             env=sdk_environment,
             output_format={
                 "type": "json_schema",
-                "schema": output_model.model_json_schema(),
+                "schema": _sdk_output_schema(output_model),
             },
             max_turns=8,
             system_prompt={
@@ -154,14 +172,19 @@ class ClaudeAgentBackend:
         )
 
         structured_output: Any = None
-        async for message in self._sdk_query(prompt=prompt, options=options):
-            if not isinstance(message, ResultMessage):
-                continue
-            if message.subtype != "success" or message.is_error:
-                raise AgentOutputError(
-                    f"Agent SDK phase failed: {message.subtype}"
-                )
-            structured_output = message.structured_output
+        try:
+            async for message in self._sdk_query(prompt=prompt, options=options):
+                if not isinstance(message, ResultMessage):
+                    continue
+                if message.subtype != "success" or message.is_error:
+                    raise AgentOutputError(
+                        f"Agent SDK phase failed: {message.subtype}"
+                    )
+                structured_output = message.structured_output
+        except ClaudeSDKError as exc:
+            raise AgentOutputError(
+                "Agent SDK phase execution failed"
+            ) from exc
 
         if structured_output is None:
             raise AgentOutputError(

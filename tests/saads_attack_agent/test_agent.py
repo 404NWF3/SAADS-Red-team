@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
 import pytest
-from claude_agent_sdk import ResultMessage
+from claude_agent_sdk import ClaudeSDKError, ResultMessage
 from pydantic import BaseModel
 
 from saads_attack_agent.agent import (
@@ -274,6 +275,83 @@ def test_claude_backend_wraps_invalid_structured_output(
     )
 
     with pytest.raises(AgentOutputError, match="structured output"):
+        asyncio.run(
+            backend.run(
+                prompt="Classify this request.",
+                skills=["recognize-attack-intent"],
+                output_model=IntentDecision,
+                evidence=[],
+            )
+        )
+
+
+def test_claude_backend_removes_unsupported_pydantic_discriminator(
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    async def fake_sdk_query(
+        *,
+        prompt: str,
+        options: Any,
+    ) -> AsyncIterator[ResultMessage]:
+        captured["schema"] = options.output_format["schema"]
+        yield result_message(valid_case_draft_output())
+
+    backend = ClaudeAgentBackend(
+        project_root=tmp_path,
+        graph=StubGraph(),
+        environment={
+            "DEEPSEEK_API_KEY": "test-key",
+            "DEEPSEEK_CHAT_MODEL": "deepseek-v4-flash",
+        },
+        sdk_query=fake_sdk_query,
+    )
+
+    output = asyncio.run(
+        backend.run(
+            prompt="Draft this case.",
+            skills=[
+                "ground-attack-case",
+                "generate-offline-attack-script",
+            ],
+            output_model=AttackCaseDraft,
+            evidence=[],
+        )
+    )
+
+    assert output.script_plan.family == "prompt_injection"
+    assert "discriminator" in json.dumps(
+        AttackCaseDraft.model_json_schema(),
+        sort_keys=True,
+    )
+    assert "discriminator" not in json.dumps(
+        captured["schema"],
+        sort_keys=True,
+    )
+
+
+def test_claude_backend_wraps_sdk_process_errors(tmp_path: Path) -> None:
+    async def fake_sdk_query(
+        *,
+        prompt: str,
+        options: Any,
+    ) -> AsyncIterator[ResultMessage]:
+        if False:
+            yield result_message(valid_intent_output())
+        raise ClaudeSDKError("SDK process failed")
+
+    backend = ClaudeAgentBackend(
+        project_root=tmp_path,
+        graph=StubGraph(),
+        environment={
+            "DEEPSEEK_API_KEY": "test-key",
+            "DEEPSEEK_CHAT_MODEL": "deepseek-v4-flash",
+        },
+        sdk_query=fake_sdk_query,
+    )
+
+    with pytest.raises(AgentOutputError, match="execution failed"):
         asyncio.run(
             backend.run(
                 prompt="Classify this request.",
