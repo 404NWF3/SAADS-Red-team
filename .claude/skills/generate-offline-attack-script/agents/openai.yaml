@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Offline Attack Script"
+  short_description: "Plan a grounded offline attack simulation"
+  default_prompt: "Use $generate-offline-attack-script to create a structured offline script plan grounded in the project graph."
