@@ -1,0 +1,1247 @@
+{
+  "output_dir": "C:\\Users\\Administrator\\Desktop\\@Projects\\SAADS-Red-team\\output",
+  "notes": {
+    "entity_redundancy": "Automated approximation of docs/metric.md Entity Redundancy Rate. No manual synonym labels. Primary rate uses same-type description embedding connected components; lexical rate uses canonical titles; combined unions both. Lower cosine thresholds raise recall for aliases but may also cluster related-but-distinct entities (for example ATLAS parent/child techniques).",
+    "relation_redundancy": "Self-loops plus extra edges beyond one for each (source, target) pair, divided by total relationships.",
+    "read_only": true
+  },
+  "entity_redundancy": {
+    "primary_rate": 0.158426,
+    "lexical": {
+      "entity_count": 2973,
+      "cluster_count": 2956,
+      "multi_member_cluster_count": 17,
+      "redundant_entity_count": 34,
+      "entity_redundancy_rate": 0.011436,
+      "cluster_samples": [
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "PROOF POINT EMAIL PROTECTION SYSTEM",
+            "PROOFPOINT EMAIL PROTECTION SYSTEM"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "HUGGING FACE",
+            "HUGGINGFACE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "CLAUDE COMPUTER USE",
+            "CLAUDE COMPUTER-USE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "CLAUDE COMPUTER USE AGENT",
+            "CLAUDE COMPUTER-USE AGENT"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "COMPUTER USE AGENT",
+            "COMPUTER-USE AGENT"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "META PROMPT EXTRACTION",
+            "METAPROMPT EXTRACTION"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "PRE-TRAINED MODEL",
+            "PRETRAINED MODEL"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0015 – EVADE AI MODEL",
+            "AML.T0015: EVADE AI MODEL"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "VULNERABILITY",
+          "titles": [
+            "BACK DOOR",
+            "BACKDOOR"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AV SPAM SCANNING",
+            "AV_SPAM_SCANNING"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "LEAK REPLAY",
+            "LEAKREPLAY"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "PACKAGE HALLUCINATION",
+            "PACKAGEHALLUCINATION"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "REAL TOXICITY PROMPTS",
+            "REALTOXICITYPROMPTS"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "STANDARD",
+          "titles": [
+            "OWASP LLM01",
+            "OWASP:LLM01"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "ANSI ESCAPE",
+            "ANSIESCAPE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "LATENT INJECTION",
+            "LATENTINJECTION"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "TOOL",
+          "titles": [
+            "HUGGINGFACE SFCONVERTBOT SCANNER",
+            "HUGGINGFACE SF_CONVERTBOT SCANNER"
+          ]
+        }
+      ],
+      "method": "lexical_canonical_title_within_type"
+    },
+    "embedding": {
+      "entity_count": 2973,
+      "cluster_count": 2680,
+      "multi_member_cluster_count": 178,
+      "redundant_entity_count": 471,
+      "entity_redundancy_rate": 0.158426,
+      "cluster_samples": [
+        {
+          "size": 40,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0010",
+            "AML.T0010.001",
+            "AML.T0010.002",
+            "AML.T0010.003",
+            "AML.T0010.004",
+            "AML.T0010.005",
+            "AML.T0011",
+            "AML.T0011.000",
+            "AML.T0011.001",
+            "AML.T0020",
+            "AML.T0024",
+            "AML.T0024 EXFILTRATION VIA ML INFERENCE API",
+            "AML.T0024.000",
+            "AML.T0024.001",
+            "AML.T0024.002",
+            "AML.T0031",
+            "AML.T0040",
+            "AML.T0043",
+            "AML.T0043.000",
+            "AML.T0043.001",
+            "AML.T0043.002",
+            "AML.T0043.003",
+            "AML.T0043.004",
+            "AML.T0051",
+            "AML.T0051.000",
+            "AML.T0051.001",
+            "AML.T0051.002",
+            "AML.T0055",
+            "AML.T0056",
+            "AML.T0065",
+            "AML.T0066",
+            "AML.T0085",
+            "AML.T0085.000",
+            "AML.T0085.001",
+            "AML.T0086",
+            "AML.T0101",
+            "AML.T0104",
+            "AML.T0110",
+            "EXFILTRATION VIA AI INFERENCE API",
+            "EXFILTRATION VIA AI INFERENCE API (AML.T0024)"
+          ]
+        },
+        {
+          "size": 15,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "ACCESS CONTROL INHERITED FROM USER OR AGENT FOR TOOLS",
+            "INHERITED ACCESS CONTROLS FOR AGENT TOOLS",
+            "INHERITED USER PERMISSIONS FOR AI AGENTS",
+            "PERMISSION INHERITANCE FROM USER",
+            "PRIVILEGED AGENT ACCESS CONTROL",
+            "PRIVILEGED AI AGENT ACCESS CONTROL",
+            "PROPER ACCESS CONTROL FOR TOOL USE",
+            "PROPER ACCESS CONTROLS FOR PRIVILEGED AI AGENTS",
+            "TOOL ACCESS CONTROL",
+            "TOOL ACCESS CONTROL WITH INHERITED PERMISSIONS",
+            "TOOL-LEVEL ACCESS CONTROL INHERITANCE",
+            "USER INHERITED PERMISSIONS",
+            "USER-INHERITED AGENT PERMISSIONS",
+            "USER-INHERITED PERMISSIONS FOR AI AGENT",
+            "USER-INHERITED PERMISSIONS FOR TOOL USE"
+          ]
+        },
+        {
+          "size": 8,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DATA AND MODEL POISONING",
+            "DATA POISONING",
+            "DATA POISONING ATTACK",
+            "MODEL POISONING",
+            "POISONED DATA TRAINING",
+            "POISONED TRAINING DATA",
+            "POISONING OF MODELS",
+            "POISONING OF TRAINING DATA"
+          ]
+        },
+        {
+          "size": 7,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0048",
+            "AML.T0048.000",
+            "AML.T0048.001",
+            "AML.T0048.002",
+            "AML.T0048.003",
+            "AML.T0048.004",
+            "AML.T0048: EXTERNAL HARMS"
+          ]
+        },
+        {
+          "size": 7,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0051.000 – LLM PROMPT INJECTION: DIRECT (META PROMPT EXTRACTION)",
+            "LLM PROMPT INJECTION (AML.T0051)",
+            "LLM PROMPT INJECTION (AML.T0051.000)",
+            "LLM PROMPT INJECTION (AML.T0051.001)",
+            "LLM PROMPT INJECTION (AML.T0051.002)",
+            "LLM PROMPT INJECTION (DIRECT)",
+            "LLM PROMPT INJECTION (INDIRECT)"
+          ]
+        },
+        {
+          "size": 6,
+          "type": "COMPONENT",
+          "titles": [
+            "AI21 LABS",
+            "ELEVENLABS",
+            "MAKERSUITE",
+            "MISTRAL",
+            "OPENAI",
+            "OPENROUTER"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0000",
+            "AML.T0000.000",
+            "AML.T0000.001",
+            "AML.T0000.002",
+            "AML.T0002.000"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0005",
+            "AML.T0005.000",
+            "AML.T0005.001",
+            "AML.T0005.001: TRAIN PROXY VIA REPLICATION",
+            "AML.T0005.002"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LIMIT MODEL RELEASE",
+            "LIMITING MODEL ARTIFACT RELEASE",
+            "LIMITING RELEASE OF MODEL ARCHITECTURES AND CHECKPOINTS",
+            "LIMITING RELEASE OF MODEL ARTIFACTS",
+            "MODEL ARTIFACT RELEASE LIMITATION"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "ARTIFACT SIGNATURE CHECKING",
+            "PROPER CHECKING OF SIGNATURES",
+            "SIGNATURE CHECKING",
+            "SIGNATURE CHECKING FOR AI MODELS",
+            "SIGNATURE CHECKING FOR UNSAFE MODELS"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "RESTRICT AUTOMATIC TOOL USE WHEN UNTRUSTED DATA PRESENT",
+            "RESTRICT AUTOMATIC TOOL USE WITH UNTRUSTED DATA",
+            "RESTRICTED TOOL INVOCATION CONTROL",
+            "RESTRICTING AUTOMATIC TOOL USE",
+            "RESTRICTING AUTOMATIC TOOL USE WHEN UNTRUSTED DATA PRESENT"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0018",
+            "AML.T0018.000",
+            "AML.T0018.001",
+            "AML.T0018.002"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "COMPONENT",
+          "titles": [
+            "LLM MALWARE ANALYSIS AND REVERSE ENGINEERING TOOL",
+            "LLM MALWARE DETECTOR",
+            "LLM-BASED MALWARE DETECTION OR ANALYSIS TOOL",
+            "LLM-BASED MALWARE DETECTION TOOL"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "COMPONENT",
+          "titles": [
+            "CLAUDE COMPUTER USE",
+            "CLAUDE COMPUTER USE AGENT",
+            "CLAUDE COMPUTER-USE",
+            "CLAUDED COMPUTER USE"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "EVALUATION",
+          "titles": [
+            "SORRY03",
+            "SORRY07",
+            "SORRY08",
+            "SORRY09"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "EVALUATION",
+          "titles": [
+            "TIER 1 (PROBE)",
+            "TIER 2 (PROBE)",
+            "TIER 3 (PROBE)",
+            "TIER 9 (PROBE)"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "VULNERABILITY",
+          "titles": [
+            "DATASET POISONING",
+            "POISONED DATA",
+            "POISONED DATASET"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DIRECT PROMPT INJECTION",
+            "INDIRECT PROMPT INJECTION",
+            "PROMPT INJECTION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "LARGE LANGUAGE MODEL",
+            "LARGE LANGUAGE MODEL (LLM)",
+            "LLM"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0052",
+            "AML.T0052.000",
+            "AML.T0052.001"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LIVENESS CHECK",
+            "LIVENESS DETECTION",
+            "LIVENESS VERIFICATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DATA EXFILTRATION VIA AGENT TOOLS",
+            "DATA EXFILTRATION VIA AGENT TOOLS IN COPILOT STUDIO",
+            "EXFILTRATION VIA AI AGENT TOOL INVOCATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0084.000",
+            "AML.T0084.001",
+            "AML.T0084.002"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "OUTPUT FILTER",
+            "OUTPUT FILTERING",
+            "OUTPUT MODERATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "IOS APP STORE",
+            "MACOS APP STORE",
+            "MICROSOFT STORE"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "AVOID EDGE DEPLOYMENT",
+            "AVOIDING EDGE DEVICE DEPLOYMENT",
+            "EDGE DEPLOYMENT AVOIDANCE"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "QUERY RESTRICTION",
+            "RESTRICTING MODEL QUERIES",
+            "RESTRICTING THE NUMBER OF QUERIES"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LOG AI AGENT TOOL INVOCATIONS",
+            "LOGGING AI AGENT TOOL INVOCATIONS",
+            "TOOL INVOCATION LOGGING"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "USER CONFIRMATION FOR TOOL INVOCATION",
+            "USER CONFIRMATION FOR TOOL INVOCATIONS",
+            "USER CONFIRMATION OF TOOL INVOCATIONS"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "FILTERS",
+            "INPUT FILTER",
+            "INPUT FILTERS"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "JAILBREAK ATTACK",
+            "LATENT JAILBREAK",
+            "MULTI-TURN JAILBREAK"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "PAYLOAD",
+            "PAYLOADS",
+            "PAYLOAD_TRIGGER"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "INJECTION_MARKER",
+            "PAYLOAD_MARKER",
+            "TRIGGER_MARKER"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "STANDARD",
+          "titles": [
+            "AML.T0051.000 – LLM PROMPT INJECTION: DIRECT",
+            "AML.T0051.001 – LLM PROMPT INJECTION: INDIRECT",
+            "AML.T0054 – LLM JAILBREAK INJECTION: DIRECT"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "TOOL",
+          "titles": [
+            "HUGGINGFACE SFCONVERTBOT SCANNER",
+            "HUGGINGFACE SF_CONVERTBOT",
+            "HUGGINGFACE SF_CONVERTBOT SCANNER"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "COMMAND AND CONTROL HTTP TRAFFIC DATASET",
+            "MALWARE COMMAND AND CONTROL TRAFFIC DATASET"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0016",
+            "AML.T0016.000"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "CYLANCE'S AI MALWARE DETECTION SOFTWARE",
+            "CYLANCE'S AI MALWARE DETECTOR"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "MODEL EXTRACTION",
+            "MODEL EXTRACTION VIA API"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LEAST PRIVILEGE",
+            "PRINCIPLE OF LEAST PRIVILEGE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "PROOF POINT EMAIL PROTECTION SYSTEM",
+            "PROOFPOINT EMAIL PROTECTION SYSTEM"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "ONLINE EVASION",
+            "ONLINE EVASION ATTACK BY REPLAYING ADVERSARIAL EXAMPLES"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0013",
+            "AML.T0014"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.TA0001",
+            "AML.TA0011"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.TA0000",
+            "AML.TA0008"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "BACKDOOR ATTACK",
+            "BACKDOOR ATTACKS ON AI MODELS"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AI SUPPLY CHAIN COMPROMISE",
+            "SUPPLY CHAIN COMPROMISE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "TOOL",
+          "titles": [
+            "GARAK",
+            "NVIDIA GARAK"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "STANDARD",
+          "titles": [
+            "OWASP TOP 10 FOR LLM APPLICATIONS",
+            "OWASP TOP 10 FOR LLM APPLICATIONS 2025"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "VULNERABILITY",
+          "titles": [
+            "UNTRUSTED INSTRUCTION AND DATA SHARING ONE CHANNEL",
+            "UNTRUSTED INSTRUCTIONS AND DATA SHARING ONE CHANNEL"
+          ]
+        }
+      ],
+      "method": "cosine_connected_components_within_type",
+      "cosine_threshold": 0.85,
+      "similar_pair_count": 380,
+      "embedding_dim": 2048
+    },
+    "combined": {
+      "entity_count": 2973,
+      "cluster_count": 2669,
+      "multi_member_cluster_count": 188,
+      "redundant_entity_count": 492,
+      "entity_redundancy_rate": 0.165489,
+      "cluster_samples": [
+        {
+          "size": 40,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0010",
+            "AML.T0010.001",
+            "AML.T0010.002",
+            "AML.T0010.003",
+            "AML.T0010.004",
+            "AML.T0010.005",
+            "AML.T0011",
+            "AML.T0011.000",
+            "AML.T0011.001",
+            "AML.T0020",
+            "AML.T0024",
+            "AML.T0024 EXFILTRATION VIA ML INFERENCE API",
+            "AML.T0024.000",
+            "AML.T0024.001",
+            "AML.T0024.002",
+            "AML.T0031",
+            "AML.T0040",
+            "AML.T0043",
+            "AML.T0043.000",
+            "AML.T0043.001",
+            "AML.T0043.002",
+            "AML.T0043.003",
+            "AML.T0043.004",
+            "AML.T0051",
+            "AML.T0051.000",
+            "AML.T0051.001",
+            "AML.T0051.002",
+            "AML.T0055",
+            "AML.T0056",
+            "AML.T0065",
+            "AML.T0066",
+            "AML.T0085",
+            "AML.T0085.000",
+            "AML.T0085.001",
+            "AML.T0086",
+            "AML.T0101",
+            "AML.T0104",
+            "AML.T0110",
+            "EXFILTRATION VIA AI INFERENCE API",
+            "EXFILTRATION VIA AI INFERENCE API (AML.T0024)"
+          ]
+        },
+        {
+          "size": 15,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "ACCESS CONTROL INHERITED FROM USER OR AGENT FOR TOOLS",
+            "INHERITED ACCESS CONTROLS FOR AGENT TOOLS",
+            "INHERITED USER PERMISSIONS FOR AI AGENTS",
+            "PERMISSION INHERITANCE FROM USER",
+            "PRIVILEGED AGENT ACCESS CONTROL",
+            "PRIVILEGED AI AGENT ACCESS CONTROL",
+            "PROPER ACCESS CONTROL FOR TOOL USE",
+            "PROPER ACCESS CONTROLS FOR PRIVILEGED AI AGENTS",
+            "TOOL ACCESS CONTROL",
+            "TOOL ACCESS CONTROL WITH INHERITED PERMISSIONS",
+            "TOOL-LEVEL ACCESS CONTROL INHERITANCE",
+            "USER INHERITED PERMISSIONS",
+            "USER-INHERITED AGENT PERMISSIONS",
+            "USER-INHERITED PERMISSIONS FOR AI AGENT",
+            "USER-INHERITED PERMISSIONS FOR TOOL USE"
+          ]
+        },
+        {
+          "size": 8,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DATA AND MODEL POISONING",
+            "DATA POISONING",
+            "DATA POISONING ATTACK",
+            "MODEL POISONING",
+            "POISONED DATA TRAINING",
+            "POISONED TRAINING DATA",
+            "POISONING OF MODELS",
+            "POISONING OF TRAINING DATA"
+          ]
+        },
+        {
+          "size": 7,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0048",
+            "AML.T0048.000",
+            "AML.T0048.001",
+            "AML.T0048.002",
+            "AML.T0048.003",
+            "AML.T0048.004",
+            "AML.T0048: EXTERNAL HARMS"
+          ]
+        },
+        {
+          "size": 7,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0051.000 – LLM PROMPT INJECTION: DIRECT (META PROMPT EXTRACTION)",
+            "LLM PROMPT INJECTION (AML.T0051)",
+            "LLM PROMPT INJECTION (AML.T0051.000)",
+            "LLM PROMPT INJECTION (AML.T0051.001)",
+            "LLM PROMPT INJECTION (AML.T0051.002)",
+            "LLM PROMPT INJECTION (DIRECT)",
+            "LLM PROMPT INJECTION (INDIRECT)"
+          ]
+        },
+        {
+          "size": 6,
+          "type": "COMPONENT",
+          "titles": [
+            "AI21 LABS",
+            "ELEVENLABS",
+            "MAKERSUITE",
+            "MISTRAL",
+            "OPENAI",
+            "OPENROUTER"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0000",
+            "AML.T0000.000",
+            "AML.T0000.001",
+            "AML.T0000.002",
+            "AML.T0002.000"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0005",
+            "AML.T0005.000",
+            "AML.T0005.001",
+            "AML.T0005.001: TRAIN PROXY VIA REPLICATION",
+            "AML.T0005.002"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "COMPONENT",
+          "titles": [
+            "CLAUDE COMPUTER USE",
+            "CLAUDE COMPUTER USE AGENT",
+            "CLAUDE COMPUTER-USE",
+            "CLAUDE COMPUTER-USE AGENT",
+            "CLAUDED COMPUTER USE"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LIMIT MODEL RELEASE",
+            "LIMITING MODEL ARTIFACT RELEASE",
+            "LIMITING RELEASE OF MODEL ARCHITECTURES AND CHECKPOINTS",
+            "LIMITING RELEASE OF MODEL ARTIFACTS",
+            "MODEL ARTIFACT RELEASE LIMITATION"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "ARTIFACT SIGNATURE CHECKING",
+            "PROPER CHECKING OF SIGNATURES",
+            "SIGNATURE CHECKING",
+            "SIGNATURE CHECKING FOR AI MODELS",
+            "SIGNATURE CHECKING FOR UNSAFE MODELS"
+          ]
+        },
+        {
+          "size": 5,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "RESTRICT AUTOMATIC TOOL USE WHEN UNTRUSTED DATA PRESENT",
+            "RESTRICT AUTOMATIC TOOL USE WITH UNTRUSTED DATA",
+            "RESTRICTED TOOL INVOCATION CONTROL",
+            "RESTRICTING AUTOMATIC TOOL USE",
+            "RESTRICTING AUTOMATIC TOOL USE WHEN UNTRUSTED DATA PRESENT"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0018",
+            "AML.T0018.000",
+            "AML.T0018.001",
+            "AML.T0018.002"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "COMPONENT",
+          "titles": [
+            "LLM MALWARE ANALYSIS AND REVERSE ENGINEERING TOOL",
+            "LLM MALWARE DETECTOR",
+            "LLM-BASED MALWARE DETECTION OR ANALYSIS TOOL",
+            "LLM-BASED MALWARE DETECTION TOOL"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "EVALUATION",
+          "titles": [
+            "SORRY03",
+            "SORRY07",
+            "SORRY08",
+            "SORRY09"
+          ]
+        },
+        {
+          "size": 4,
+          "type": "EVALUATION",
+          "titles": [
+            "TIER 1 (PROBE)",
+            "TIER 2 (PROBE)",
+            "TIER 3 (PROBE)",
+            "TIER 9 (PROBE)"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "VULNERABILITY",
+          "titles": [
+            "DATASET POISONING",
+            "POISONED DATA",
+            "POISONED DATASET"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DIRECT PROMPT INJECTION",
+            "INDIRECT PROMPT INJECTION",
+            "PROMPT INJECTION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "LARGE LANGUAGE MODEL",
+            "LARGE LANGUAGE MODEL (LLM)",
+            "LLM"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0052",
+            "AML.T0052.000",
+            "AML.T0052.001"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LIVENESS CHECK",
+            "LIVENESS DETECTION",
+            "LIVENESS VERIFICATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "DATA EXFILTRATION VIA AGENT TOOLS",
+            "DATA EXFILTRATION VIA AGENT TOOLS IN COPILOT STUDIO",
+            "EXFILTRATION VIA AI AGENT TOOL INVOCATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0084.000",
+            "AML.T0084.001",
+            "AML.T0084.002"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "OUTPUT FILTER",
+            "OUTPUT FILTERING",
+            "OUTPUT MODERATION"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "IOS APP STORE",
+            "MACOS APP STORE",
+            "MICROSOFT STORE"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "AVOID EDGE DEPLOYMENT",
+            "AVOIDING EDGE DEVICE DEPLOYMENT",
+            "EDGE DEPLOYMENT AVOIDANCE"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "QUERY RESTRICTION",
+            "RESTRICTING MODEL QUERIES",
+            "RESTRICTING THE NUMBER OF QUERIES"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LOG AI AGENT TOOL INVOCATIONS",
+            "LOGGING AI AGENT TOOL INVOCATIONS",
+            "TOOL INVOCATION LOGGING"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "USER CONFIRMATION FOR TOOL INVOCATION",
+            "USER CONFIRMATION FOR TOOL INVOCATIONS",
+            "USER CONFIRMATION OF TOOL INVOCATIONS"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "FILTERS",
+            "INPUT FILTER",
+            "INPUT FILTERS"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "JAILBREAK ATTACK",
+            "LATENT JAILBREAK",
+            "MULTI-TURN JAILBREAK"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "PAYLOAD",
+            "PAYLOADS",
+            "PAYLOAD_TRIGGER"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "COMPONENT",
+          "titles": [
+            "INJECTION_MARKER",
+            "PAYLOAD_MARKER",
+            "TRIGGER_MARKER"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "STANDARD",
+          "titles": [
+            "AML.T0051.000 – LLM PROMPT INJECTION: DIRECT",
+            "AML.T0051.001 – LLM PROMPT INJECTION: INDIRECT",
+            "AML.T0054 – LLM JAILBREAK INJECTION: DIRECT"
+          ]
+        },
+        {
+          "size": 3,
+          "type": "TOOL",
+          "titles": [
+            "HUGGINGFACE SFCONVERTBOT SCANNER",
+            "HUGGINGFACE SF_CONVERTBOT",
+            "HUGGINGFACE SF_CONVERTBOT SCANNER"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "COMMAND AND CONTROL HTTP TRAFFIC DATASET",
+            "MALWARE COMMAND AND CONTROL TRAFFIC DATASET"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0016",
+            "AML.T0016.000"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "CYLANCE'S AI MALWARE DETECTION SOFTWARE",
+            "CYLANCE'S AI MALWARE DETECTOR"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "MODEL EXTRACTION",
+            "MODEL EXTRACTION VIA API"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "DEFENSE_CONTROL",
+          "titles": [
+            "LEAST PRIVILEGE",
+            "PRINCIPLE OF LEAST PRIVILEGE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "COMPONENT",
+          "titles": [
+            "PROOF POINT EMAIL PROTECTION SYSTEM",
+            "PROOFPOINT EMAIL PROTECTION SYSTEM"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "ONLINE EVASION",
+            "ONLINE EVASION ATTACK BY REPLAYING ADVERSARIAL EXAMPLES"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.T0013",
+            "AML.T0014"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.TA0001",
+            "AML.TA0011"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AML.TA0000",
+            "AML.TA0008"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "BACKDOOR ATTACK",
+            "BACKDOOR ATTACKS ON AI MODELS"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "ATTACK_TECHNIQUE",
+          "titles": [
+            "AI SUPPLY CHAIN COMPROMISE",
+            "SUPPLY CHAIN COMPROMISE"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "TOOL",
+          "titles": [
+            "GARAK",
+            "NVIDIA GARAK"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "STANDARD",
+          "titles": [
+            "OWASP TOP 10 FOR LLM APPLICATIONS",
+            "OWASP TOP 10 FOR LLM APPLICATIONS 2025"
+          ]
+        },
+        {
+          "size": 2,
+          "type": "VULNERABILITY",
+          "titles": [
+            "UNTRUSTED INSTRUCTION AND DATA SHARING ONE CHANNEL",
+            "UNTRUSTED INSTRUCTIONS AND DATA SHARING ONE CHANNEL"
+          ]
+        }
+      ],
+      "method": "lexical_or_embedding_union"
+    }
+  },
+  "relation_redundancy": {
+    "relationship_count": 5481,
+    "self_loop_count": 3,
+    "duplicate_pair_count": 0,
+    "duplicate_extra_count": 0,
+    "conflicting_pair_count": 0,
+    "redundant_relationship_count": 3,
+    "relation_redundancy_rate": 0.000547,
+    "self_loop_samples": [
+      {
+        "source": "AI AGENT",
+        "target": "AI AGENT",
+        "count": 1,
+        "descriptions": [
+          "AI AGENT攻击技术利用AI AGENT组件进行命令与控制。"
+        ]
+      },
+      {
+        "source": "AI SERVICE WEB INTERFACE",
+        "target": "AI SERVICE WEB INTERFACE",
+        "count": 1,
+        "descriptions": [
+          "AI SERVICE WEB INTERFACE 攻击技术滥用 AI SERVICE WEB INTERFACE 组件作为中继。"
+        ]
+      },
+      {
+        "source": "SYSTEM PROMPT LEAKAGE",
+        "target": "SYSTEM PROMPT LEAKAGE",
+        "count": 1,
+        "descriptions": [
+          "（重复关系，跳过）"
+        ]
+      }
+    ],
+    "duplicate_pair_samples": []
+  }
+}

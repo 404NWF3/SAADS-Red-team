@@ -2,37 +2,39 @@
 
 ## 产物规模
 
-- documents: 297
-- text_units: 403
-- entities: 2973
-- relationships: 5481
-- communities: 636
-- community_reports: 630
+- documents: 6843
+- text_units: 6843
+- entities: 10408
+- relationships: 11329
+- communities: 1809
+- community_reports: 1808
 
 ## 实体类型
 
-- ATTACK_TECHNIQUE: 987
-- COMPONENT: 949
-- DEFENSE_CONTROL: 502
-- VULNERABILITY: 292
-- TOOL: 114
-- EVALUATION: 75
-- STANDARD: 51
-- PERSON: 2
-- API: 1
-- 越界类型: API, PERSON
+- COMPONENT: 4665
+- VULNERABILITY: 2344
+- ATTACK_TECHNIQUE: 1225
+- DEFENSE_CONTROL: 1217
+- EVALUATION: 530
+- TOOL: 332
+- STANDARD: 87
+- LLM: 5
+- SYSTEM: 1
+- ORGANIZATION: 1
+- 容易被忽略的依赖项: 1
+- 越界类型: LLM, ORGANIZATION, SYSTEM, 容易被忽略的依赖项
 
 ## 关系与连通性
 
-- 关系语义分布: {"other": 2538, "mitigates": 935, "exploits": 784, "targets": 706, "implements": 694, "detects": 325, "evaluates": 215, "recommends": 46}
-- 方向异常候选: 50
-- 孤立节点: 254 (8.54%)
-- 节点度：min=0, median=2.0, p95=13.0, max=530
-- 攻击—防御两跳覆盖: 728/987 (73.76%)
+- 关系语义分布: {"other": 5833, "targets": 1837, "exploits": 1402, "evaluates": 868, "implements": 796, "mitigates": 785, "detects": 529, "recommends": 79}
+- 方向异常候选: 38
+- 孤立节点: 781 (7.50%)
+- 节点度：min=0, median=1.0, p95=5.0, max=1412
+- 攻击—防御两跳覆盖: 733/1225 (59.84%)
 
 ## 社区报告
 
-- 报告数: 630
+- 报告数: 1808
 - 缺少标题: 0
 - 缺少正文: 0
 

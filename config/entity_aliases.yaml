@@ -1,0 +1,64 @@
+version: 1
+
+canonical_entities:
+  AIBOM:
+    type: DEFENSE_CONTROL
+    aliases:
+      - AIBOM
+      - AI BOM
+      - AI BILL OF MATERIALS
+
+  HUGGING FACE:
+    type: COMPONENT
+    aliases:
+      - HUGGING FACE
+      - HUGGINGFACE
+
+  LLM:
+    type: COMPONENT
+    aliases:
+      - LLM
+      - LARGE LANGUAGE MODEL
+      - LARGE LANGUAGE MODEL (LLM)
+
+  FINE TUNING PIPELINE:
+    type: COMPONENT
+    aliases:
+      - FINE-TUNING
+      - FINE TUNING
+      - FINETUNING
+
+  ENSEMBLE:
+    type: COMPONENT
+    aliases:
+      - ENSEMBLE
+
+  PROMPT ENGINEERING:
+    type: DEFENSE_CONTROL
+    aliases:
+      - PROMPT ENGINEERING
+      - PROMPT-ENGINEERING
+
+  MACHINE UNLEARNING:
+    type: DEFENSE_CONTROL
+    aliases:
+      - MACHINE UNLEARNING
+      - MACHINE-UNLEARNING
+
+  QUANTIZATION:
+    type: COMPONENT
+    aliases:
+      - QUANTIZATION
+
+  REINFORCEMENT LEARNING:
+    type: COMPONENT
+    aliases:
+      - REINFORCEMENT LEARNING
+      - REINFORCEMENT-LEARNING
+
+  SUPERVISED FINE TUNING:
+    type: COMPONENT
+    aliases:
+      - SUPERVISED FINE TUNING
+      - SUPERVISED FINE-TUNING
+      - SUPERVISED FINETUNING

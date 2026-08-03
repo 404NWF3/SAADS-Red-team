@@ -1,6 +1,6 @@
 # AGENTS.md
 
-使用 glm 系列的模型，API见 .env，按照 GraphRAG 的标准使用API。
+注意开发智能体时使用 Claude Agent SDK 在开发时一定呀查询官方文档开发：https://code.claude.com/docs/en/agent-sdk/overview
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 

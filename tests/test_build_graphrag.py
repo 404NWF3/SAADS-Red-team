@@ -9,26 +9,96 @@ import httpx
 from scripts.build_graphrag import (
     BuildError,
     _api_error,
+    prepare_fresh_output,
     preflight_models,
     run_checked,
     single_build_lock,
     validate_corpus,
+    validate_entity_alignment,
     validate_index,
+    validate_summary_provenance,
+    write_entity_alignment_report,
 )
 
 
-def test_validate_corpus_requires_matching_minimum_counts(tmp_path: Path) -> None:
-    (tmp_path / "input").mkdir()
-    (tmp_path / "reports").mkdir()
-    documents = [{"id": str(index), "text": "content"} for index in range(100)]
-    (tmp_path / "input" / "_corpus.json").write_text(
+def test_validate_corpus_requires_summary_only_document_shape(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "summary_input").mkdir()
+    documents = [
+        {
+            "id": f"summary-{index:06d}",
+            "title": f"Summary {index:06d}",
+            "text": f"Summary content {index}.",
+        }
+        for index in range(1, 101)
+    ]
+    (tmp_path / "summary_input" / "summary_corpus.json").write_text(
         json.dumps(documents), encoding="utf-8"
     )
-    pd.DataFrame({"id": range(100)}).to_csv(
-        tmp_path / "reports" / "corpus_manifest.csv", index=False
-    )
 
-    assert validate_corpus(tmp_path) == {"documents": 100, "manifest_rows": 100}
+    assert validate_corpus(tmp_path) == {
+        "documents": 100,
+        "summary_rows": 100,
+    }
+
+
+def test_validate_summary_provenance_checks_final_documents_row_by_row(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "summary_input").mkdir()
+    (tmp_path / "output").mkdir()
+    (tmp_path / "data" / "items_20260713T095333Z.csv").write_text(
+        "item_id,title,summary,source_uri\n"
+        "forbidden-id,Forbidden title,Allowed summary.,https://forbidden.test\n",
+        encoding="utf-8-sig",
+    )
+    corpus = [
+        {
+            "id": "summary-000001",
+            "title": "Summary 000001",
+            "text": "Allowed summary.",
+        }
+    ]
+    (tmp_path / "summary_input" / "summary_corpus.json").write_text(
+        json.dumps(corpus), encoding="utf-8"
+    )
+    pd.DataFrame(
+        {
+            "id": ["summary-000001"],
+            "title": ["Summary 000001"],
+            "text": ["Allowed summary."],
+            "raw_data": [corpus[0]],
+        }
+    ).to_parquet(tmp_path / "output" / "documents.parquet")
+
+    assert validate_summary_provenance(tmp_path) == {
+        "source_summary_rows": 1,
+        "corpus_rows": 1,
+        "indexed_documents": 1,
+        "exact_matches": 1,
+    }
+
+    indexed = pd.read_parquet(tmp_path / "output" / "documents.parquet")
+    indexed.loc[0, "text"] = "Forbidden title"
+    indexed.to_parquet(tmp_path / "output" / "documents.parquet")
+    with pytest.raises(BuildError, match="does not exactly match"):
+        validate_summary_provenance(tmp_path)
+
+
+def test_prepare_fresh_output_archives_existing_index(tmp_path: Path) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    (output / "old-marker.txt").write_text("old index", encoding="utf-8")
+
+    backup = prepare_fresh_output(tmp_path)
+
+    assert backup is not None
+    assert backup.parent == tmp_path / "backups"
+    assert (backup / "old-marker.txt").read_text(encoding="utf-8") == "old index"
+    assert output.is_dir()
+    assert list(output.iterdir()) == []
 
 
 def test_validate_index_rejects_partial_output(tmp_path: Path) -> None:
@@ -38,6 +108,60 @@ def test_validate_index_rejects_partial_output(tmp_path: Path) -> None:
 
     with pytest.raises(BuildError, match="missing required parquet"):
         validate_index(tmp_path)
+
+
+def test_validate_entity_alignment_checks_aliases_and_endpoints(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    pd.DataFrame(
+        {
+            "title": ["AIBOM", "LLM"],
+            "type": ["DEFENSE_CONTROL", "COMPONENT"],
+        }
+    ).to_parquet(output / "entities.parquet")
+    pd.DataFrame(
+        {
+            "source": ["AIBOM"],
+            "target": ["LLM"],
+        }
+    ).to_parquet(output / "relationships.parquet")
+    pd.DataFrame(
+        {
+            "source_title": ["AI BOM", "LLM"],
+            "source_type": ["DEFENSE_CONTROL", "COMPONENT"],
+            "canonical_title": ["AIBOM", "LLM"],
+            "canonical_type": ["DEFENSE_CONTROL", "COMPONENT"],
+            "method": ["registry", "identity"],
+            "confidence": [1.0, 1.0],
+            "reason": ["registry", "identity"],
+        }
+    ).to_parquet(output / "entity_alignment.parquet")
+
+    metrics = validate_entity_alignment(tmp_path)
+    assert metrics == {
+        "audit_rows": 2,
+        "changed_entities": 1,
+        "review_required": 0,
+        "self_loops": 0,
+    }
+    write_entity_alignment_report(tmp_path, metrics)
+    report = json.loads(
+        (tmp_path / "reports" / "entity_alignment.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert report["summary"] == metrics
+    assert report["method_counts"] == {"identity": 1, "registry": 1}
+    assert len(report["decisions"]) == 2
+
+    entities = pd.read_parquet(output / "entities.parquet")
+    entities.loc[0, "title"] = "AI BOM"
+    entities.to_parquet(output / "entities.parquet")
+
+    with pytest.raises(BuildError, match="forbidden aliases"):
+        validate_entity_alignment(tmp_path)
 
 
 def test_single_build_lock_rejects_a_second_builder(tmp_path: Path) -> None:
@@ -61,7 +185,7 @@ def test_balance_error_has_stable_chinese_diagnostic() -> None:
     assert _api_error(response) == "HTTP 429, code 1113: 余额不足或无可用资源包，请充值。"
 
 
-def test_preflight_uses_deepseek_for_completion_and_zhipu_for_embedding(
+def test_preflight_uses_glm_for_completion_and_zhipu_for_embedding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     requests: list[dict[str, object]] = []
@@ -94,9 +218,8 @@ def test_preflight_uses_deepseek_for_completion_and_zhipu_for_embedding(
             return FakeResponse({"choices": [{"message": {"content": "OK"}}]})
 
     environment = {
-        "DEEPSEEK_API_KEY": "deepseek-key",
-        "DEEPSEEK_API_BASE": "https://api.deepseek.com",
-        "DEEPSEEK_CHAT_MODEL": "deepseek-v4-flash",
+        "ZAI_API_KEY": "zai-key",
+        "ZAI_CHAT_MODEL": "glm-4.5-air",
         "ZHIPU_API_KEY": "zhipu-key",
         "ZHIPU_API_BASE": "https://open.bigmodel.cn/api/paas/v4",
         "ZHIPU_EMBEDDING_MODEL": "embedding-3",
@@ -107,20 +230,20 @@ def test_preflight_uses_deepseek_for_completion_and_zhipu_for_embedding(
     monkeypatch.setattr("scripts.build_graphrag.httpx.Client", FakeClient)
 
     assert preflight_models() == {
-        "completion_provider": "deepseek",
-        "chat_model": "deepseek-v4-flash",
+        "completion_provider": "zai",
+        "chat_model": "glm-4.5-air",
         "embedding_provider": "zhipu",
         "embedding_model": "embedding-3",
         "embedding_dimensions": 2,
     }
     assert requests[0] == {
-        "url": "https://api.deepseek.com/chat/completions",
+        "url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
         "headers": {
-            "Authorization": "Bearer deepseek-key",
+            "Authorization": "Bearer zai-key",
             "Content-Type": "application/json",
         },
         "json": {
-            "model": "deepseek-v4-flash",
+            "model": "glm-4.5-air",
             "messages": [
                 {
                     "role": "user",
@@ -130,6 +253,7 @@ def test_preflight_uses_deepseek_for_completion_and_zhipu_for_embedding(
             "temperature": 0,
             "max_tokens": 16,
             "thinking": {"type": "disabled"},
+            "response_format": {"type": "json_object"},
         },
     }
     assert requests[1]["url"] == "https://open.bigmodel.cn/api/paas/v4/embeddings"

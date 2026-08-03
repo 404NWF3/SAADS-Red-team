@@ -2,21 +2,17 @@
 ### For a full list of available settings, see https://microsoft.github.io/graphrag/config/yaml/
 
 ### LLM settings ###
-## DeepSeek handles completions; Zhipu / Z.AI handles embeddings.
-## Both providers expose OpenAI-compatible APIs and load credentials from .env.
+## GLM handles completions; Zhipu / Z.AI handles embeddings.
+## Both use Z.AI's OpenAI-compatible API and load credentials from .env.
 
 completion_models:
   default_completion_model:
-    type: deepseek_json_object
+    type: glm_json_object
     model_provider: openai
-    model: ${DEEPSEEK_CHAT_MODEL}
+    model: ${ZAI_CHAT_MODEL}
     auth_method: api_key
-    api_key: ${DEEPSEEK_API_KEY}
-    api_base: ${DEEPSEEK_API_BASE}
-    # DeepSeek V4 Flash defaults to thinking mode. GraphRAG extraction and
-    # response generation use non-thinking mode for predictable JSON and cost.
-    # extra_body bypasses LiteLLM's provider-normalization layer and is sent
-    # unchanged to DeepSeek's OpenAI-compatible endpoint.
+    api_key: ${ZAI_API_KEY}
+    api_base: ${ZHIPU_API_BASE}
     call_args:
       extra_body:
         thinking:
@@ -57,10 +53,8 @@ embedding_models:
 ### Document processing settings ###
 
 input:
-  # Keep one Markdown file per document for auditability and also generate
-  # input/_corpus.json so GraphRAG can preserve structured metadata.
   type: json
-  file_pattern: ".*_corpus\\.json"
+  file_pattern: ".*summary_corpus\\.json$$"
   encoding: utf-8
   id_column: id
   title_column: title
@@ -71,15 +65,7 @@ chunking:
   size: 1200
   overlap: 100
   encoding_model: cl100k_base
-  prepend_metadata:
-    - title
-    - source
-    - source_type
-    - published_at
-    - security_domain
-    - trust_level
-    - canonical_url
-    - document_version
+  prepend_metadata: []
 
 ### Storage settings ###
 ## If blob storage is specified in the following four sections,
@@ -87,7 +73,7 @@ chunking:
 
 input_storage:
   type: file # [file, blob, cosmosdb]
-  base_dir: "input"
+  base_dir: "summary_input"
 
 output_storage:
   type: file # [file, blob, cosmosdb]
@@ -101,10 +87,9 @@ cache:
   type: json # [json, memory, none]
   storage:
     type: file # [file, blob, cosmosdb]
-    # Keep provider-specific caches isolated because GraphRAG 3.1.1 cache keys
-    # do not include the model name. This prevents legacy GLM responses from
-    # being reused after the completion provider changes.
-    base_dir: "cache/deepseek-v4-flash"
+    # Use a new namespace so the summary-only GLM index cannot reuse responses
+    # from previous models or corpora.
+    base_dir: "cache/glm-4.5-air-summary-20260713-v1"
     
 vector_store:
   type: lancedb
@@ -127,7 +112,7 @@ extract_graph:
     - TOOL
     - STANDARD
     - EVALUATION
-  max_gleanings: 1
+  max_gleanings: 0
 
 summarize_descriptions:
   completion_model_id: default_completion_model

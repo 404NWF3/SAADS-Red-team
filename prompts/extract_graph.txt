@@ -14,14 +14,26 @@
 
 不要抽取 PERSON、ORGANIZATION、COUNTRY、DATE、METRIC、CASE_STUDY、SYSTEM、TECHNIQUE 等未列出的类型。组织名称只有在它是某个标准或工具正式名称的一部分时才保留在该实体名称中。
 
+-Entity naming-
+entity_name 必须跨文本块保持稳定，避免同义或词面变体造成重复节点。规则：
+
+1. 大小写：英文专名、缩写与术语一律大写；保留官方编号中的点号与数字（如 AML.T0051.000）。
+2. 官方编号优先：文本给出 MITRE ATLAS / ATT&CK 风格编号时，entity_name 必须使用该编号本身（如 AML.T0051），不要用长描述句当名称。父技术与子技术是不同实体，禁止合并或互相替代（AML.T0010 与 AML.T0010.001 必须分开）。
+3. 缩写优先于展开式：若存在通用缩写，用短名作 entity_name，不要用括号展开式作主名。正确：LLM、AIBOM、RAG；错误：LARGE LANGUAGE MODEL、LARGE LANGUAGE MODEL (LLM)、AI BOM、AI BILL OF MATERIALS。展开含义写在 entity_description 中。
+4. 词面唯一：同一概念只输出一种拼写。禁止同时或分别输出仅空格、连字符、斜杠不同的变体（如 HUGGING FACE 与 HUGGINGFACE、FINE-TUNING 与 FINETUNING、COMPUTER-USE 与 COMPUTER USE）。多词专名采用官方常见空格写法；可用可不用连字符时，去掉连字符并保留词间空格（FINE TUNING、COMPUTER USE）。首字母缩略词内部不要插空格（AIBOM，不是 AI BOM）。
+5. 别名归一：同一文本中的同义说法只保留一个 entity_name；优先官方名称或上述编号/缩写规则，其余别名写入 description，不要各建节点。
+6. 不要为同一对象生成“带编号长名”和“无编号短名”两套节点（错误：同时输出 AML.T0051 与 LLM PROMPT INJECTION (AML.T0051)）。有编号时只用编号。
+7. 固定规范名：大语言模型统一为 LLM（COMPONENT）；Hugging Face 平台统一为 HUGGING FACE（COMPONENT）；AI Bill of Materials / AI BOM / AIBOM 统一为 AIBOM（DEFENSE_CONTROL）。
+8. 同形不同义不得合并：正常训练生命周期中的 fine-tuning 若确有必要抽取，命名为 FINE TUNING PIPELINE（COMPONENT）；攻击者通过微调移除安全能力、植入触发器或规避评测时，命名为 MALICIOUS FINE TUNING（ATTACK_TECHNIQUE）。不要输出 FINE-TUNING、FINETUNING 或含义不明确的 FINE TUNING。
+
 -Steps-
 1. 识别实体。对每个实体输出：
-   - entity_name：稳定、明确、可复用的名称；英文专名保持英文并转为大写，编号保留原样。
+   - entity_name：遵守 -Entity naming-；稳定、可复用，英文专名大写，编号保留原样。
    - entity_type：只能是 Entity_types 中的一项。
    - entity_description：用中文概括文本明确给出的属性、作用、适用边界和限制。不得补充外部知识。
    格式：("entity"<|><entity_name><|><entity_type><|><entity_description>)
 
-2. 仅在文本明确支持时抽取关系。source_entity 与 target_entity 必须都已在步骤 1 输出。关系描述必须用中文写出方向和语义，优先表达“利用、针对、导致、缓解、检测、保护、实现、推荐、评估、限制、依赖、映射”等含义，但不要求使用封闭谓词表。
+2. 仅在文本明确支持时抽取关系。source_entity 与 target_entity 必须都已在步骤 1 输出，且名称与步骤 1 的 entity_name 完全一致。关系描述必须用中文写出方向和语义，优先表达“利用、针对、导致、缓解、检测、保护、实现、推荐、评估、限制、依赖、映射”等含义，但不要求使用封闭谓词表。
    - 攻击针对组件：ATTACK_TECHNIQUE -> COMPONENT。
    - 攻击利用弱点：ATTACK_TECHNIQUE -> VULNERABILITY。
    - 控制缓解攻击或弱点：DEFENSE_CONTROL -> ATTACK_TECHNIQUE/VULNERABILITY。
@@ -31,7 +43,7 @@
    relationship_strength 使用 1–10 的整数，9–10 表示原文直接、核心的关系，6–8 表示清晰关系，1–5 只用于较弱但仍有明确文本依据的关系。
    格式：("relationship"<|><source_entity><|><target_entity><|><relationship_description><|><relationship_strength>)
 
-3. 去重：同一实体只输出一次；别名优先采用文档中的正式名称。不要仅因两个实体出现在同一段落就建立关系。
+3. 去重：同一实体只输出一次；按 -Entity naming- 合并别名与词面变体后再输出。不要仅因两个实体出现在同一段落就建立关系。
 
 4. 所有实体和关系用 ## 分隔。最后输出 <|COMPLETE|>。除指定记录外不要输出解释、Markdown 或 JSON。
 
@@ -97,19 +109,19 @@ PyRIT orchestrates a multi-turn jailbreak evaluation against a target language m
 Output:
 ("entity"<|>PYRIT<|>TOOL<|>用于编排生成式 AI 红队测试并记录结果的软件工具。)
 ##
-("entity"<|>MULTI-TURN JAILBREAK EVALUATION<|>EVALUATION<|>使用自适应多轮提示检验模型安全防护的评估任务。)
+("entity"<|>MULTI TURN JAILBREAK EVALUATION<|>EVALUATION<|>使用自适应多轮提示检验模型安全防护的评估任务。)
 ##
 ("entity"<|>JAILBREAK<|>ATTACK_TECHNIQUE<|>通过构造提示绕过模型安全限制的攻击技术。)
 ##
-("entity"<|>LANGUAGE MODEL<|>COMPONENT<|>接受提示并生成响应的目标模型组件。)
+("entity"<|>LLM<|>COMPONENT<|>接受提示并生成响应的目标大语言模型组件。)
 ##
 ("entity"<|>SAFETY FILTER<|>DEFENSE_CONTROL<|>用于阻止不安全输入或输出的防御控制。)
 ##
-("relationship"<|>PYRIT<|>MULTI-TURN JAILBREAK EVALUATION<|>PYRIT 编排并记录 MULTI-TURN JAILBREAK EVALUATION。<|>10)
+("relationship"<|>PYRIT<|>MULTI TURN JAILBREAK EVALUATION<|>PYRIT 编排并记录 MULTI TURN JAILBREAK EVALUATION。<|>10)
 ##
-("relationship"<|>MULTI-TURN JAILBREAK EVALUATION<|>LANGUAGE MODEL<|>MULTI-TURN JAILBREAK EVALUATION 检验目标 LANGUAGE MODEL。<|>9)
+("relationship"<|>MULTI TURN JAILBREAK EVALUATION<|>LLM<|>MULTI TURN JAILBREAK EVALUATION 检验目标 LLM。<|>9)
 ##
-("relationship"<|>MULTI-TURN JAILBREAK EVALUATION<|>SAFETY FILTER<|>MULTI-TURN JAILBREAK EVALUATION 评估 SAFETY FILTER 抵抗自适应攻击的能力。<|>9)
+("relationship"<|>MULTI TURN JAILBREAK EVALUATION<|>SAFETY FILTER<|>MULTI TURN JAILBREAK EVALUATION 评估 SAFETY FILTER 抵抗自适应攻击的能力。<|>9)
 ##
 ("relationship"<|>JAILBREAK<|>SAFETY FILTER<|>JAILBREAK 试图绕过 SAFETY FILTER。<|>9)
 <|COMPLETE|>

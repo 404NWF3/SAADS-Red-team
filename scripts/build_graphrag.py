@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import shutil
@@ -15,6 +16,8 @@ import httpx
 import pandas as pd
 from dotenv import load_dotenv
 
+from llm_defense_graphrag.summary_corpus import prepare_summary_corpus
+
 
 REQUIRED_PARQUETS = (
     "documents",
@@ -23,7 +26,15 @@ REQUIRED_PARQUETS = (
     "relationships",
     "communities",
     "community_reports",
+    "entity_alignment",
 )
+FORBIDDEN_ENTITY_ALIASES = {
+    "AI BOM",
+    "HUGGINGFACE",
+    "LARGE LANGUAGE MODEL (LLM)",
+    "FINE-TUNING",
+    "FINETUNING",
+}
 
 
 class BuildError(RuntimeError):
@@ -38,7 +49,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--preflight-only",
         action="store_true",
-        help="Check corpus, DeepSeek completion, and Zhipu embedding resources.",
+        help="Check corpus, GLM completion, and Zhipu embedding resources.",
+    )
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Archive the current output and build a new index from an empty output.",
     )
     return parser.parse_args()
 
@@ -53,9 +69,8 @@ def load_project_environment(root: Path) -> None:
         raise BuildError(f"Missing {env_path}; copy .env.example and configure it first.")
     load_dotenv(env_path, override=False)
     required = (
-        "DEEPSEEK_API_KEY",
-        "DEEPSEEK_API_BASE",
-        "DEEPSEEK_CHAT_MODEL",
+        "ZAI_API_KEY",
+        "ZAI_CHAT_MODEL",
         "ZHIPU_API_KEY",
         "ZHIPU_API_BASE",
         "ZHIPU_EMBEDDING_MODEL",
@@ -67,24 +82,32 @@ def load_project_environment(root: Path) -> None:
 
 
 def validate_corpus(root: Path, minimum: int = 100) -> dict[str, int]:
-    corpus_path = root / "input" / "_corpus.json"
-    manifest_path = root / "reports" / "corpus_manifest.csv"
-    if not corpus_path.is_file() or not manifest_path.is_file():
-        raise BuildError("Corpus or manifest is missing; run scripts/collect_corpus.py first.")
+    corpus_path = root / "summary_input" / "summary_corpus.json"
+    if not corpus_path.is_file():
+        raise BuildError(
+            "Summary corpus is missing; run scripts/prepare_summary_corpus.py first."
+        )
     corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
     if not isinstance(corpus, list):
         raise BuildError(f"Expected a JSON array in {corpus_path}.")
-    manifest = pd.read_csv(manifest_path)
-    if len(corpus) < minimum or len(manifest) < minimum:
+    if len(corpus) < minimum:
         raise BuildError(
-            f"Corpus is below the {minimum}-document gate: "
-            f"json={len(corpus)}, manifest={len(manifest)}."
+            f"Corpus is below the {minimum}-document gate: json={len(corpus)}."
         )
-    if len(corpus) != len(manifest):
-        raise BuildError(
-            f"Corpus and manifest counts differ: json={len(corpus)}, manifest={len(manifest)}."
-        )
-    return {"documents": len(corpus), "manifest_rows": len(manifest)}
+    for index, document in enumerate(corpus, start=1):
+        expected = {
+            "id": f"summary-{index:06d}",
+            "title": f"Summary {index:06d}",
+        }
+        if not isinstance(document, dict) or set(document) != {"id", "title", "text"}:
+            raise BuildError(
+                f"Summary corpus row {index} must contain only id, title, and text."
+            )
+        if document["id"] != expected["id"] or document["title"] != expected["title"]:
+            raise BuildError(f"Summary corpus row {index} has non-synthetic structure.")
+        if not isinstance(document["text"], str) or not document["text"].strip():
+            raise BuildError(f"Summary corpus row {index} has empty text.")
+    return {"documents": len(corpus), "summary_rows": len(corpus)}
 
 
 def _api_error(response: httpx.Response) -> str:
@@ -100,9 +123,9 @@ def _api_error(response: httpx.Response) -> str:
 
 
 def preflight_models() -> dict[str, object]:
-    completion_base = os.environ["DEEPSEEK_API_BASE"].rstrip("/")
+    completion_base = os.environ["ZHIPU_API_BASE"].rstrip("/")
     completion_headers = {
-        "Authorization": f"Bearer {os.environ['DEEPSEEK_API_KEY']}",
+        "Authorization": f"Bearer {os.environ['ZAI_API_KEY']}",
         "Content-Type": "application/json",
     }
     embedding_base = os.environ["ZHIPU_API_BASE"].rstrip("/")
@@ -116,7 +139,7 @@ def preflight_models() -> dict[str, object]:
             f"{completion_base}/chat/completions",
             headers=completion_headers,
             json={
-                "model": os.environ["DEEPSEEK_CHAT_MODEL"],
+                "model": os.environ["ZAI_CHAT_MODEL"],
                 "messages": [
                     {
                         "role": "user",
@@ -126,6 +149,7 @@ def preflight_models() -> dict[str, object]:
                 "temperature": 0,
                 "max_tokens": 16,
                 "thinking": {"type": "disabled"},
+                "response_format": {"type": "json_object"},
             },
         )
         if not completion.is_success:
@@ -148,12 +172,29 @@ def preflight_models() -> dict[str, object]:
                 f"Embedding dimension mismatch: expected {dimensions}, received {len(vector)}."
             )
     return {
-        "completion_provider": "deepseek",
-        "chat_model": os.environ["DEEPSEEK_CHAT_MODEL"],
+        "completion_provider": "zai",
+        "chat_model": os.environ["ZAI_CHAT_MODEL"],
         "embedding_provider": "zhipu",
         "embedding_model": os.environ["ZHIPU_EMBEDDING_MODEL"],
         "embedding_dimensions": dimensions,
     }
+
+
+def prepare_fresh_output(root: Path) -> Path | None:
+    root = root.resolve()
+    output = (root / "output").resolve()
+    backup_root = (root / "backups").resolve()
+    if output.parent != root or backup_root.parent != root:
+        raise BuildError("Fresh output paths escaped the project root.")
+
+    backup: Path | None = None
+    if output.exists():
+        backup_root.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        backup = backup_root / f"output-{stamp}"
+        output.rename(backup)
+    output.mkdir(parents=True, exist_ok=False)
+    return backup
 
 
 @contextmanager
@@ -231,6 +272,170 @@ def validate_index(root: Path) -> dict[str, int]:
     return rows
 
 
+def validate_summary_provenance(root: Path) -> dict[str, int]:
+    source_path = root / "data" / "items_20260713T095333Z.csv"
+    corpus_path = root / "summary_input" / "summary_corpus.json"
+    documents_path = root / "output" / "documents.parquet"
+
+    with source_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames is None or "summary" not in reader.fieldnames:
+            raise BuildError(f"Source CSV is missing the summary column: {source_path}")
+        source_summaries = [
+            (row.get("summary") or "").strip()
+            for row in reader
+        ]
+
+    corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+    indexed = pd.read_parquet(documents_path)
+    if len(source_summaries) != len(corpus) or len(corpus) != len(indexed):
+        raise BuildError(
+            "Summary provenance row counts differ: "
+            f"source={len(source_summaries)}, corpus={len(corpus)}, "
+            f"indexed={len(indexed)}."
+        )
+
+    indexed_by_id = {
+        str(row["id"]): row
+        for row in indexed.to_dict(orient="records")
+    }
+    exact_matches = 0
+    for position, summary_text in enumerate(source_summaries, start=1):
+        expected = {
+            "id": f"summary-{position:06d}",
+            "title": f"Summary {position:06d}",
+            "text": summary_text,
+        }
+        corpus_row = corpus[position - 1]
+        indexed_row = indexed_by_id.get(expected["id"])
+        if (
+            corpus_row != expected
+            or indexed_row is None
+            or indexed_row.get("title") != expected["title"]
+            or indexed_row.get("text") != expected["text"]
+            or indexed_row.get("raw_data") != expected
+        ):
+            raise BuildError(
+                f"Summary row {position} does not exactly match the final indexed document."
+            )
+        exact_matches += 1
+
+    return {
+        "source_summary_rows": len(source_summaries),
+        "corpus_rows": len(corpus),
+        "indexed_documents": len(indexed),
+        "exact_matches": exact_matches,
+    }
+
+
+def validate_entity_alignment(root: Path) -> dict[str, int]:
+    output = root / "output"
+    entities = pd.read_parquet(output / "entities.parquet")
+    relationships = pd.read_parquet(output / "relationships.parquet")
+    audit = pd.read_parquet(output / "entity_alignment.parquet")
+
+    titles = entities["title"].astype(str)
+    forbidden = sorted(set(titles).intersection(FORBIDDEN_ENTITY_ALIASES))
+    if forbidden:
+        raise BuildError(
+            f"Index contains forbidden aliases: {', '.join(forbidden)}"
+        )
+    duplicates = titles[titles.duplicated()].unique().tolist()
+    if duplicates:
+        raise BuildError(
+            f"Canonical entity titles are not unique: {', '.join(duplicates[:10])}"
+        )
+
+    title_set = set(titles)
+    endpoints = set(relationships["source"].astype(str)).union(
+        relationships["target"].astype(str)
+    )
+    missing = sorted(endpoints - title_set)
+    if missing:
+        raise BuildError(
+            f"Relationships reference missing canonical entities: {', '.join(missing[:10])}"
+        )
+
+    self_loops = int(
+        (
+            relationships["source"].astype(str)
+            == relationships["target"].astype(str)
+        ).sum()
+    )
+    if self_loops:
+        raise BuildError(f"Alignment output contains {self_loops} self-loop relations.")
+
+    required_audit_columns = {
+        "source_title",
+        "source_type",
+        "canonical_title",
+        "canonical_type",
+        "method",
+        "confidence",
+        "reason",
+    }
+    missing_columns = required_audit_columns - set(audit.columns)
+    if missing_columns:
+        raise BuildError(
+            f"Entity alignment audit is missing columns: {sorted(missing_columns)}"
+        )
+    audit_targets = set(audit["canonical_title"].astype(str))
+    missing_audit_targets = sorted(audit_targets - title_set)
+    if missing_audit_targets:
+        raise BuildError(
+            "Entity alignment audit references missing canonical titles: "
+            + ", ".join(missing_audit_targets[:10])
+        )
+
+    changed = int(
+        (
+            (audit["source_title"].astype(str) != audit["canonical_title"].astype(str))
+            | (audit["source_type"].astype(str) != audit["canonical_type"].astype(str))
+        ).sum()
+    )
+    review_required = int(
+        audit["method"].astype(str).str.contains("review_required").sum()
+    )
+    if review_required:
+        raise BuildError(
+            f"Entity alignment has {review_required} unresolved review decisions."
+        )
+    return {
+        "audit_rows": len(audit),
+        "changed_entities": changed,
+        "review_required": review_required,
+        "self_loops": self_loops,
+    }
+
+
+def write_entity_alignment_report(
+    root: Path, summary: dict[str, int]
+) -> None:
+    audit = pd.read_parquet(root / "output" / "entity_alignment.parquet")
+    method_counts = {
+        str(method): int(count)
+        for method, count in audit["method"].value_counts().sort_index().items()
+    }
+    decisions = json.loads(
+        audit.to_json(orient="records", force_ascii=False)
+    )
+    report_path = root / "reports" / "entity_alignment.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(
+            {
+                "summary": summary,
+                "method_counts": method_counts,
+                "decisions": decisions,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def write_summary(root: Path, summary: dict[str, object]) -> None:
     path = root / "reports" / "build_summary.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -250,14 +455,33 @@ def main() -> None:
     }
     try:
         load_project_environment(root)
+        corpus_stats = prepare_summary_corpus(
+            root / "data" / "items_20260713T095333Z.csv",
+            root / "summary_input" / "summary_corpus.json",
+        )
+        summary["source"] = {
+            "csv": "data/items_20260713T095333Z.csv",
+            "field": "summary",
+            "total_rows": corpus_stats.total_rows,
+            "written_rows": corpus_stats.written_rows,
+            "empty_rows": corpus_stats.empty_rows,
+        }
         summary["corpus"] = validate_corpus(root)
         if args.preflight_only:
             summary["models"] = preflight_models()
             summary["status"] = "preflight_ok"
             return
+        if not args.fresh:
+            raise BuildError(
+                "A full rebuild requires --fresh so the previous index cannot be reused."
+            )
 
         with single_build_lock(root):
             summary["models"] = preflight_models()
+            backup = prepare_fresh_output(root)
+            summary["previous_output_backup"] = (
+                str(backup.relative_to(root)) if backup is not None else None
+            )
             python = find_executable(root, "python")
             run_checked(
                 [
@@ -274,6 +498,10 @@ def main() -> None:
                 root,
             )
             summary["index_rows"] = validate_index(root)
+            summary["summary_provenance"] = validate_summary_provenance(root)
+            alignment = validate_entity_alignment(root)
+            summary["entity_alignment"] = alignment
+            write_entity_alignment_report(root, alignment)
             run_checked([python, "scripts/analyze_graph.py"], root)
             run_checked([python, "scripts/evaluate_queries.py", "--smoke"], root)
             summary["status"] = "complete"

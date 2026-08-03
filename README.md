@@ -1,104 +1,123 @@
-# llm-defense-graphrag
+# Summary-only GraphRAG
 
-面向大模型应用安全防御的可审计 GraphRAG 工程。本阶段固定 Python 3.12、`uv`、Microsoft GraphRAG 3.1.1、DeepSeek V4 Flash 文本生成、智谱 embedding-3 向量化，以及可重复的官方语料采集/转换流程。
+本项目使用 Microsoft GraphRAG 3.1.1、GLM `glm-4.5-air` 和智谱
+`embedding-3`，从 `data/items_20260713T095333Z.csv` 的 `summary` 列构建
+面向大模型应用安全的知识图谱。
 
-当前 Standard 索引已构建完成：297 篇文档、403 个 text units、2973 个实体、5481 条关系、636 个社区和 630 份社区报告。LanceDB 包含 `entity_description`、`community_full_content`、`text_unit_text` 三张 2048 维向量表；Basic、Local、Global、DRIFT 四模式冒烟均通过。详细结果见 `reports/build_summary.json`、`reports/graph_quality.md` 和 `reports/query_smoke_review.md`。
+## 数据边界
 
-## 为什么选择这些来源
+构建入口只读取 CSV 的 `summary` 列。每行被转换为仅包含
+`id`、`title`、`text` 的中间文档，其中 `id` 和 `title` 是按行号生成的
+无语义标识，`text` 是去除首尾空白后的原始 `summary`。CSV 的其他列不会
+进入输入文档、Prompt、实体属性或查询上下文。
 
-| 来源 | 用途 | 获取方式 | 信任级别 |
-|---|---|---|---|
-| [MITRE ATLAS](https://github.com/mitre-atlas/atlas-data) | 攻击战术、技术、缓解、案例与显式关系；首批规模主源 | 官方月度 YAML | authoritative |
-| [OWASP LLM Top 10 2025](https://genai.owasp.org/llm-top-10/) | LLM 应用风险与缓解叙述 | 10 个官方风险页面 | authoritative |
-| [Microsoft PyRIT](https://github.com/Azure/PyRIT) | 生成式 AI 红队方法与工具 | 官方仓库文档快照 | official_project |
-| [NVIDIA garak](https://github.com/NVIDIA/garak) | LLM 漏洞探测与评估 | 官方仓库文档快照 | official_project |
+全量构建会逐行比较：
 
-不靠批量抓取搜索结果或模型补写内容凑数。每篇文档保留 canonical URL、版本、许可、原始快照路径、字数与 SHA-256。
+1. CSV `summary`；
+2. `summary_input/summary_corpus.json` 中的 `text`；
+3. `output/documents.parquet` 中的 `text` 和 `raw_data`。
 
-NIST 仍列为下一批优先候选，但只有在验证出当前可达、NIST 自有且稳定的全文入口后才会加入；不会用镜像替代官方来源。
+任一行不一致都会令构建失败。
 
-## 初始化与配置
+## 三层实体对齐
+
+实体抽取后、社区发现和向量化前执行统一对齐：
+
+1. **抽取约束**：`prompts/extract_graph.txt` 要求使用规范名称，避免产生新的
+   拼写变体。
+2. **确定性注册表**：`config/entity_aliases.yaml` 处理已知缩写、空格、连字符
+   和历史名称；注册表带版本号，可审计、可回滚。
+3. **GLM 消歧**：对归一化后仍有歧义的候选使用同一 GLM 模型判定规范名称和
+   类型；只接受候选集合内的名称、允许的类型以及不低于 `0.90` 的置信度。
+
+随后会重新聚合重复实体和关系、重写关系端点、删除合并产生的自环，并生成
+`output/entity_alignment.parquet` 审计表。当前规范结果包括：
+
+| 输入变体 | 规范实体 |
+|---|---|
+| `AIBOM` / `AI BOM` | `AIBOM` |
+| `HUGGINGFACE` / `HUGGING FACE` | `HUGGING FACE` |
+| `FINE-TUNING` / `FINETUNING` | `FINE TUNING PIPELINE` |
+| `LLM` / `LARGE LANGUAGE MODEL (LLM)` | `LLM` |
+
+## 配置
 
 ```powershell
 uv sync --dev
-Copy-Item .env.example .env  # 仅在本地尚无 .env 时执行
+Copy-Item .env.example .env
 ```
 
-`.env` 中 GraphRAG 必需变量为：
+`.env` 至少需要：
 
 ```dotenv
-DEEPSEEK_API_KEY=...
-DEEPSEEK_API_BASE=https://api.deepseek.com
-DEEPSEEK_CHAT_MODEL=deepseek-v4-flash
-
+ZAI_API_KEY=...
+ZAI_CHAT_MODEL=glm-4.5-air
 ZHIPU_API_KEY=...
 ZHIPU_API_BASE=https://open.bigmodel.cn/api/paas/v4
 ZHIPU_EMBEDDING_MODEL=embedding-3
 ZHIPU_EMBEDDING_DIMENSIONS=2048
 ```
 
-`settings.yaml` 通过 OpenAI-compatible provider 调用两个服务。DeepSeek `deepseek-v4-flash` 负责实体/关系抽取、摘要、社区报告和 Basic/Local/Global/DRIFT 查询回答，并显式关闭默认思考模式；智谱 `embedding-3` 只负责 2048 维向量化，LanceDB 的 `vector_size` 同步固定为 2048。completion 限制为每 10 秒最多 20 个请求，并使用独立的 `cache/deepseek-v4-flash/` 缓存命名空间，防止模型切换后误用旧 GLM 响应。项目 CLI 适配层把 GraphRAG 的 Pydantic `json_schema` 请求转换成 DeepSeek 支持的 `json_object` API 模式，返回后仍由 GraphRAG 执行原始 Pydantic 校验。Claude Agent SDK 只编排本地采集工作流，不作为 GraphRAG 的推理/嵌入模型；运行 Agent 入口时另需 `ANTHROPIC_API_KEY` 或有效的 Claude Code 登录。
+GLM 使用 OpenAI-compatible API。项目适配器将 GraphRAG 的 Pydantic
+`json_schema` 请求转换为 `json_object`，响应仍由本地 Pydantic 校验；结构错误
+会收到一次明确的纠正提示并重试。
 
-## 采集与验证
+## 构建
 
-```powershell
-uv run python scripts/collect_corpus.py --min-docs 100 --strict
-uv run python scripts/collect_corpus.py --validate-only --min-docs 100
-uv run python scripts/graphrag_cli.py index --dry-run
-```
-
-`scripts/graphrag_cli.py index --dry-run` 会各发送一条 completion 与 embedding 请求来验证模型配置，因此也需要有效余额。
-
-输出：
-
-- `data/raw/<source>/`：下载的原始 YAML、HTML、仓库 ZIP 与元数据；
-- `input/{mitre,owasp,nist,tools}/`：逐篇 Markdown，带固定元数据头；
-- `input/_corpus.json`：GraphRAG 实际读取的结构化语料，配合 `chunking.prepend_metadata`；
-- `reports/corpus_manifest.csv`：逐篇审计 manifest；
-- `reports/corpus_summary.json`：来源分布与失败信息。
-
-## 领域 Prompt 与 Standard 索引
-
-`prompts/tuned/` 保留 GraphRAG `prompt-tune` 的原始产物供审计；正式启用的是 `prompts/` 根目录下人工校准的 UTF-8 Prompt。实体抽取严格限制为：
-
-- `ATTACK_TECHNIQUE`
-- `DEFENSE_CONTROL`
-- `COMPONENT`
-- `VULNERABILITY`
-- `TOOL`
-- `STANDARD`
-- `EVALUATION`
-
-`extract_claims.enabled` 保持为 `false`。推荐使用单一构建入口。它先验证 100 篇门槛、DeepSeek completion 与智谱 embedding 资源，持有单实例锁，然后依次执行 Standard 索引、六类 Parquet/LanceDB 验收、图谱分析与四模式冒烟：
+先做 API 与配置预检：
 
 ```powershell
 uv run python scripts/build_graphrag.py --preflight-only
-uv run python scripts/build_graphrag.py
 ```
 
-构建状态写入 `reports/build_summary.json`。构建器在索引阶段使用 `--skip-validation`，因为它已用同一配置完成显式模型预检，避免 GraphRAG 再消耗两次重复连通请求。
-
-不要同时启动多个 `graphrag index` 进程写同一个 `output/`。索引成功后应存在 `documents`、`text_units`、`entities`、`relationships`、`communities`、`community_reports` 六个 Parquet 文件，以及 `output/lancedb/` 向量库。
-
-DeepSeek completion 与智谱 embedding 都必须有有效密钥和余额。如果智谱返回 HTTP 429 / code `1113`（余额不足或无可用资源包），先充值或配置可用资源包，再重跑同一索引命令；GraphRAG 会复用 `cache/` 中已成功且与当前模型配置匹配的响应。不要用残缺的 `output/` 执行查询或质量验收。
-
-## 查询评测与质量报告
-
-`eval/questions.yaml` 定义 40 道中文题，Basic、Local、Global、DRIFT 各 10 道。冒烟模式每种路由运行第一题；完整评测不带 `--smoke`：
+从 CSV 重新生成输入并全新构建：
 
 ```powershell
+uv run python scripts/build_graphrag.py --fresh
+```
+
+`--fresh` 是必需的：已有 `output/` 会先归档到 `backups/`，避免旧索引污染。
+不要并发启动多个索引进程写入同一个 `output/`。
+
+也可单独生成 summary-only 中间语料：
+
+```powershell
+uv run python scripts/prepare_summary_corpus.py
+```
+
+## 当前全量产物
+
+2026-07-27 的全量构建结果：
+
+| 产物 | 行数 |
+|---|---:|
+| 文档 / text units | 6,843 / 6,843 |
+| 实体 | 10,408 |
+| 关系 | 11,329 |
+| 社区 | 1,809 |
+| 社区报告 | 1,808 |
+| 实体对齐审计记录 | 11,734 |
+
+对齐修改了 969 条抽取实体；低于置信度门槛的记录为 0，关系自环为 0，关系端点
+缺失为 0。三个 LanceDB 表分别包含 10,408、1,808、6,843 条 2048 维向量。
+Basic、Local、Global、DRIFT 四种查询冒烟测试均通过。
+
+社区 `469` 的报告因 GLM 服务端内容过滤（错误码 `1301`）无法生成，因此社区报告
+比社区数少 1；图、文本单元、实体、关系和其他社区报告均完整。
+
+主要产物：
+
+- `reports/build_summary.json`：构建、模型和 summary 来源核验摘要；
+- `reports/entity_alignment.json`：实体对齐审计报告；
+- `reports/graph_quality.json`：图结构质量分析；
+- `reports/query_evaluation.jsonl`：查询评测结果；
+- `output/*.parquet`：GraphRAG 表；
+- `output/lancedb/`：向量索引。
+
+## 测试与查询
+
+```powershell
+uv run pytest -q
 uv run python scripts/evaluate_queries.py --smoke
-uv run python scripts/evaluate_queries.py
+uv run python scripts/graphrag_cli.py query --root . --method local "你的问题"
 ```
-
-结果写入 `reports/query_evaluation.jsonl` 和对应 summary；每条记录保留回答、耗时、返回码与待人工标注项。`scripts/analyze_graph.py` 输出 `reports/graph_quality.json` 与 `reports/graph_quality.md`，涵盖实体类型、重复候选、关系语义/方向、度分布、孤立节点、社区摘要和攻击—防御两跳覆盖。
-
-## Claude Agent SDK workflow
-
-项目 Skill 位于 `.claude/skills/collect-defense-corpus/`。SDK 入口显式使用 `setting_sources=["project"]` 与 `skills=["collect-defense-corpus"]`：
-
-```powershell
-uv run python main.py
-```
-
-采集器是确定性执行面；Agent 负责按 Skill 运行、审计和解释失败，不生成替代语料。

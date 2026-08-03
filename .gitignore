@@ -9,7 +9,10 @@ __pycache__/
 cache/
 logs/
 output/
+backups/
+summary_input/
+reports/.cache/
+artifacts/attack_cases/
 
 # Raw snapshots are reproducible from the source registry and manifest.
 data/raw/
-
