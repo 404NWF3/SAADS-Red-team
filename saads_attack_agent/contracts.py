@@ -23,6 +23,10 @@ QueryPurpose: TypeAlias = Literal[
     "intent_classification",
     "case_grounding",
     "script_grounding",
+    "threat_modeling",
+    "hypothesis_grounding",
+    "adjudication_grounding",
+    "test_grounding",
 ]
 
 FIXED_SAFETY_CONSTRAINTS = (

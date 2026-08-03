@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from saads_attack_agent.contracts import (
     FIXED_SAFETY_CONSTRAINTS,
     AttackCase,
+    GraphEvidence,
     IntentDecision,
 )
 
@@ -51,6 +52,22 @@ def valid_prompt_injection_case() -> dict[str, object]:
         },
         "graphrag_evidence": [],
     }
+
+
+@pytest.mark.parametrize("purpose", [
+    "intent_classification", "case_grounding", "script_grounding",
+    "threat_modeling", "hypothesis_grounding",
+    "adjudication_grounding", "test_grounding",
+])
+def test_graph_evidence_accepts_all_audited_purposes(purpose: str) -> None:
+    evidence = GraphEvidence(
+        evidence_id=f"{purpose}-abc123def456",
+        purpose=purpose,
+        question="Is this claim grounded in the repository?",
+        answer="Grounded answer.",
+    )
+
+    assert evidence.purpose == purpose
 
 
 def test_intent_rejects_confidence_outside_probability_range() -> None:

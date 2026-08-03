@@ -37,6 +37,14 @@ class FakeLocalSearch:
         return self.answer, "context"
 
 
+def stub_graph() -> SecurityGraph:
+    return SecurityGraph(
+        root=Path("."),
+        loaded=loaded_graph_fixture(),
+        search=FakeLocalSearch("Grounded answer."),
+    )
+
+
 def test_query_returns_stable_evidence_from_graph_answer(
     tmp_path: Path,
 ) -> None:
@@ -75,6 +83,16 @@ def test_query_returns_stable_evidence_from_graph_answer(
         "response_type": "Multiple Paragraphs with source citations",
         "query": "Classify indirect prompt injection.",
     }
+
+
+@pytest.mark.parametrize("purpose", [
+    "intent_classification", "case_grounding", "script_grounding",
+    "threat_modeling", "hypothesis_grounding",
+    "adjudication_grounding", "test_grounding",
+])
+def test_security_graph_accepts_all_audited_purposes(purpose: str) -> None:
+    evidence = asyncio.run(stub_graph().query(purpose, "ground this claim"))
+    assert evidence.purpose == purpose
 
 
 def test_load_fails_before_query_when_graph_tables_are_missing(

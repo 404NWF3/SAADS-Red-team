@@ -32,6 +32,10 @@ QUERY_PURPOSES = (
     "intent_classification",
     "case_grounding",
     "script_grounding",
+    "threat_modeling",
+    "hypothesis_grounding",
+    "adjudication_grounding",
+    "test_grounding",
 )
 SearchFunction = Callable[..., Awaitable[tuple[Any, Any]]]
 
