@@ -27,3 +27,4 @@ packages = ["llm_defense_graphrag", "saads_attack_agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--import-mode=importlib"
