@@ -32,7 +32,7 @@ def updated_state() -> AssessmentState:
 def test_checkpoint_is_atomic_and_event_log_is_append_only(tmp_path: Path) -> None:
     ledger = AssessmentLedger.create(tmp_path, initial_state())
 
-    ledger.append_event("debate_started", hypothesis_id="hyp-1")
+    ledger.append_event("hypothesis_duplicate", hypothesis_id="hyp-1")
     ledger.checkpoint(updated_state())
 
     assert json.loads((tmp_path / "run_state.json").read_text("utf-8"))["phase"] == "debating"
@@ -58,19 +58,22 @@ def test_load_restores_state_sessions_and_issued_evidence(tmp_path: Path) -> Non
 
 def test_load_recovers_an_invalid_jsonl_tail(tmp_path: Path) -> None:
     ledger = AssessmentLedger.create(tmp_path, initial_state())
-    ledger.append_event("first")
+    ledger.append_event("hypothesis_duplicate")
     events_path = tmp_path / "events.jsonl"
     events_path.write_text(events_path.read_text("utf-8") + '{"sequence": 2', encoding="utf-8")
 
     restored = AssessmentLedger.load(tmp_path, expected_snapshot_id="snapshot-1")
-    restored.append_event("second")
+    restored.append_event("missing_cost_metadata", role="judge")
 
     events = [
         json.loads(line)
         for line in events_path.read_text("utf-8").splitlines()
     ]
     assert [event["sequence"] for event in events] == [1, 2]
-    assert [event["event"] for event in events] == ["first", "second"]
+    assert [event["event"] for event in events] == [
+        "hypothesis_duplicate",
+        "missing_cost_metadata",
+    ]
 
 
 def test_load_rejects_incompatible_schema_version(tmp_path: Path) -> None:
@@ -91,20 +94,45 @@ def test_load_rejects_snapshot_mismatch(tmp_path: Path) -> None:
         AssessmentLedger.load(tmp_path, expected_snapshot_id="different-snapshot")
 
 
-def test_events_redact_secret_bearing_details_and_absolute_paths(tmp_path: Path) -> None:
+def test_append_event_rejects_secret_bearing_detail_key(tmp_path: Path) -> None:
     ledger = AssessmentLedger.create(tmp_path, initial_state())
 
-    ledger.append_event(
-        "tool_called",
-        api_key="secret-value",
-        tool_args={"token": "another-secret"},
-        working_directory=r"C:\sensitive\repo",
-        safe_detail="preserved",
-    )
+    with pytest.raises(ValueError, match="sensitive"):
+        ledger.append_event("hypothesis_duplicate", api_key="secret-value")
 
-    event = json.loads((tmp_path / "events.jsonl").read_text("utf-8"))
-    assert event["safe_detail"] == "preserved"
-    assert "api_key" not in event
-    assert "tool_args" not in event
-    assert "working_directory" not in event
-    assert "secret-value" not in json.dumps(event)
+
+def test_append_event_rejects_absolute_path_detail(tmp_path: Path) -> None:
+    ledger = AssessmentLedger.create(tmp_path, initial_state())
+
+    with pytest.raises(ValueError, match="absolute path"):
+        ledger.append_event(
+            "hypothesis_duplicate",
+            working_directory=r"C:\sensitive\repo",
+        )
+
+
+def test_append_event_rejects_oversized_string_detail(tmp_path: Path) -> None:
+    ledger = AssessmentLedger.create(tmp_path, initial_state())
+
+    with pytest.raises(ValueError, match="too large"):
+        ledger.append_event("hypothesis_duplicate", error="x" * 4097)
+
+
+def test_append_event_rejects_unknown_event_name(tmp_path: Path) -> None:
+    ledger = AssessmentLedger.create(tmp_path, initial_state())
+
+    with pytest.raises(ValueError, match="unsupported"):
+        ledger.append_event("tool_called", safe_detail="preserved")
+
+
+def test_append_event_persists_allowlisted_safe_payload(tmp_path: Path) -> None:
+    ledger = AssessmentLedger.create(tmp_path, initial_state())
+
+    ledger.append_event("forced_finalization_failed", hypothesis_id="hyp-1", error="timeout")
+
+    assert json.loads((tmp_path / "events.jsonl").read_text("utf-8")) == {
+        "sequence": 1,
+        "event": "forced_finalization_failed",
+        "hypothesis_id": "hyp-1",
+        "error": "timeout",
+    }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import uuid
@@ -14,10 +15,19 @@ from saads_grill_agent.contracts import AssessmentState
 
 _SCHEMA_VERSION = 1
 _SENSITIVE_KEY = re.compile(
-    r"(api[_-]?key|credential|env|password|secret|token|tool[_-]?(args|arguments))",
+    r"(api[_-]?key|authorization|credential|env|password|secret|token|tool[_-]?(args|arguments))",
     re.IGNORECASE,
 )
 _ABSOLUTE_WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
+_MAX_EVENT_STRING_LENGTH = 4096
+_ALLOWED_EVENTS = frozenset(
+    {
+        "forced_finalization_failed",
+        "hypothesis_duplicate",
+        "missing_cost_metadata",
+        "resource_cap_reached",
+    }
+)
 _JSONL_ARTIFACTS = (
     "code_evidence.jsonl",
     "graph_evidence.jsonl",
@@ -87,14 +97,13 @@ class AssessmentLedger:
         self._write_checkpoint_artifacts()
 
     def append_event(self, event: str, **details: Any) -> None:
+        if event not in _ALLOWED_EVENTS:
+            raise ValueError(f"unsupported ledger event: {event}")
+        self._validate_event_value(details)
         payload = {
             "sequence": self._next_sequence,
             "event": event,
-            **{
-                key: self._sanitize(value, key)
-                for key, value in details.items()
-                if not _SENSITIVE_KEY.search(key) and not self._is_absolute_value(value)
-            },
+            **details,
         }
         self._append_jsonl(self.run_dir / "events.jsonl", payload)
         self._next_sequence += 1
@@ -232,12 +241,38 @@ class AssessmentLedger:
             return [cls._sanitize(item) for item in value]
         return value
 
+    @classmethod
+    def _validate_event_value(cls, value: Any, key: str | None = None) -> None:
+        if key is not None and _SENSITIVE_KEY.search(key):
+            raise ValueError(f"sensitive event detail is not allowed: {key}")
+        if isinstance(value, Path):
+            if value.is_absolute():
+                raise ValueError("absolute path event detail is not allowed")
+            raise ValueError("unsupported event detail type: Path")
+        if isinstance(value, str):
+            if cls._is_absolute_path(value):
+                raise ValueError("absolute path event detail is not allowed")
+            if len(value) > _MAX_EVENT_STRING_LENGTH:
+                raise ValueError("event string detail is too large")
+            return
+        if value is None or isinstance(value, (bool, int)):
+            return
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                raise ValueError("event detail must be JSON-serializable")
+            return
+        if isinstance(value, list):
+            for item in value:
+                cls._validate_event_value(item)
+            return
+        if isinstance(value, dict):
+            for item_key, item_value in value.items():
+                if not isinstance(item_key, str):
+                    raise ValueError("event detail keys must be strings")
+                cls._validate_event_value(item_value, item_key)
+            return
+        raise ValueError(f"unsupported event detail type: {type(value).__name__}")
+
     @staticmethod
     def _is_absolute_path(value: str) -> bool:
         return Path(value).is_absolute() or bool(_ABSOLUTE_WINDOWS_PATH.match(value))
-
-    @classmethod
-    def _is_absolute_value(cls, value: Any) -> bool:
-        return isinstance(value, Path) and value.is_absolute() or (
-            isinstance(value, str) and cls._is_absolute_path(value)
-        )
