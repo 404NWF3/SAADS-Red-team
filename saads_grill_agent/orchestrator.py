@@ -146,8 +146,16 @@ class AssessmentOrchestrator:
     async def _discover(self, state: AssessmentState) -> None:
         while state.discovery.consecutive_empty_sweeps < 2:
             batch = await self._turn(
-                state, "red_team", "Discover one or more grounded vulnerability hypotheses.",
+                state,
+                "red_team",
+                (
+                    "Discover one or more grounded vulnerability hypotheses. "
+                    "Use repository MCP tools and cite only issued evidence_id "
+                    "values (or reuse profiled surface evidence_ids). "
+                    "Return HypothesisBatch structured output."
+                ),
                 HypothesisBatch,
+                enable_subagents=False,
             )
             added = self._add_hypotheses(state, batch.hypotheses)
             if not added:
