@@ -245,9 +245,8 @@ class TeamBackend:
                     total_cost_usd = getattr(message, "total_cost_usd", None)
                     usage = getattr(message, "usage", None)
             except TeamTurnError as exc:
-                last_error = exc
-                if "error_max_" in str(exc) and attempt < 2:
-                    continue
+                # Do not retry hard SDK stop conditions — they usually leave
+                # the async transport in a bad state on subsequent attempts.
                 raise
             except Exception as exc:  # noqa: BLE001 - normalize SDK errors
                 raise TeamTurnError("team turn execution failed") from exc
