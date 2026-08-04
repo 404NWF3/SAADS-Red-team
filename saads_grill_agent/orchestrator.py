@@ -104,7 +104,16 @@ class AssessmentOrchestrator:
             if state.profile is None:
                 state.phase = "profiling"
                 profile = await self._turn(
-                    state, "code_team", "Profile repository attack surfaces.", ProfileResult
+                    state,
+                    "code_team",
+                    (
+                        "Profile repository attack surfaces and return ProfileResult ASAP. "
+                        "Minimize tool calls: start with list_repository, then at most a few "
+                        "targeted search_repository / read_repository_snippet calls for "
+                        "model, prompt, tool, RAG, and auth seams. Prefer signed snippets "
+                        "over exhaustive exploration; do not recurse into every file."
+                    ),
+                    ProfileResult,
                 )
                 self._require_profile_evidence(state, profile)
                 if profile.profile.snapshot_id != state.snapshot_id:

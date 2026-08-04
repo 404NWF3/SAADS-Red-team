@@ -22,7 +22,9 @@ from saads_grill_agent.teams import (
     RedResponseBatch,
     AdjudicationVerdict as _AdjudicationModel,
     JUDGE_BUDGET_USD,
+    JUDGE_MAX_TURNS,
     TEAM_BUDGET_USD,
+    TEAM_MAX_TURNS,
 )
 
 
@@ -126,6 +128,8 @@ def test_red_team_gets_only_agent_and_read_only_mcp_tools(tmp_path: Path) -> Non
     assert options.resume == "session-red-1"
     assert options.setting_sources == []
     assert options.permission_mode == "dontAsk"
+    assert options.max_turns == TEAM_MAX_TURNS
+    assert options.max_turns == 40
     assert set(options.allowed_tools) == {
         "Agent",
         "mcp__repository__list_repository",
@@ -184,6 +188,8 @@ def test_judge_cannot_invoke_subagents(tmp_path: Path) -> None:
     assert "mcp__security_graph__query_security_graph" in options.allowed_tools
     # judge budget is tighter than team budget
     assert options.max_budget_usd == pytest.approx(JUDGE_BUDGET_USD)
+    assert options.max_turns == JUDGE_MAX_TURNS
+    assert options.max_turns == 12
 
 
 def test_every_call_uses_output_format(tmp_path: Path) -> None:

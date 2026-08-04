@@ -36,7 +36,8 @@ Role = str  # "red_team" | "code_team" | "judge"
 
 TEAM_BUDGET_USD = 1.50
 JUDGE_BUDGET_USD = 0.75
-TEAM_MAX_TURNS = 12
+# Team turns (profiling/discovery/debate) need headroom for subagents + MCP tools.
+TEAM_MAX_TURNS = 40
 JUDGE_MAX_TURNS = 12
 
 REPOSITORY_TOOLS = [
@@ -212,8 +213,11 @@ class TeamBackend:
         output_model: type[OutputModel],
         session_id: str | None,
         audits: TeamTurnAudits,
+        max_turns: int | None = None,
     ) -> TeamTurnResult:
-        options = self._build_options(role, output_model, session_id, audits)
+        options = self._build_options(
+            role, output_model, session_id, audits, max_turns=max_turns
+        )
         structured_output: Any = None
         result_session_id = session_id or ""
         total_cost_usd: float | None = None
@@ -254,11 +258,14 @@ class TeamBackend:
         output_model: type[BaseModel],
         session_id: str | None,
         audits: TeamTurnAudits,
+        max_turns: int | None = None,
     ) -> ClaudeAgentOptions:
         try:
             sdk_env = _deepseek_environment(self._environment or _default_env())
         except Exception:
             sdk_env = {}
+        if max_turns is None:
+            max_turns = JUDGE_MAX_TURNS if role == "judge" else TEAM_MAX_TURNS
         return ClaudeAgentOptions(
             cwd=str(self._target_repo),
             setting_sources=[],
@@ -273,7 +280,7 @@ class TeamBackend:
                 "type": "json_schema",
                 "schema": _sdk_output_schema(output_model),
             },
-            max_turns=TEAM_MAX_TURNS if role != "judge" else JUDGE_MAX_TURNS,
+            max_turns=max_turns,
             max_budget_usd=_role_budget(role),
             resume=session_id,
             hooks=self._hooks(audits),
