@@ -17,7 +17,11 @@ from saads_grill_agent.contracts import (
     ThreatSurface,
     VulnerabilityHypothesis,
 )
-from saads_grill_agent.orchestrator import AssessmentOrchestrator, ProfileResult
+from saads_grill_agent.orchestrator import (
+    AssessmentOrchestrator,
+    ProfileResult,
+    derive_hypothesis_id,
+)
 from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.teams import (
     HypothesisBatch,
@@ -32,6 +36,7 @@ from saads_grill_agent.teams import (
 class FakeLedger:
     checkpoints: list[Any] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
+    issued_evidence_ids: list[str] = field(default_factory=list)
 
     def checkpoint(self, state: Any) -> None:
         self.checkpoints.append(state.model_copy(deep=True))
@@ -45,6 +50,7 @@ class ScriptedTeamBackend:
         self.outputs = list(outputs)
         self.costs = costs or [0.01] * len(outputs)
         self.role_order: list[str] = []
+        self.session_ids: list[str | None] = []
 
     async def run_turn(
         self,
@@ -56,6 +62,7 @@ class ScriptedTeamBackend:
         audits: TeamTurnAudits,
     ) -> TeamTurnResult:
         self.role_order.append(role)
+        self.session_ids.append(session_id)
         output = self.outputs.pop(0)
         return TeamTurnResult(
             output=output_model.model_validate(output),
@@ -110,8 +117,8 @@ def hypothesis(
     root_cause: str = "Untrusted context reaches the model prompt",
     attack_path: list[str] | None = None,
 ) -> VulnerabilityHypothesis:
-    return VulnerabilityHypothesis(
-        hypothesis_id=hypothesis_id,
+    result = VulnerabilityHypothesis(
+        hypothesis_id=hypothesis_id,  # ignored by the orchestrator
         surface_id=surface_id,
         title="Prompt injection",
         root_cause=root_cause,
@@ -121,9 +128,11 @@ def hypothesis(
         code_evidence_ids=["code-hypothesis"],
         graph_evidence_ids=[],
     )
+    return result.model_copy(update={"hypothesis_id": derive_hypothesis_id(result)})
 
 
-def rebuttal(hypothesis_id: str = "hyp-pi-1", evidence: list[str] | None = None) -> RebuttalBatch:
+def rebuttal(hypothesis_id: str | None = None, evidence: list[str] | None = None) -> RebuttalBatch:
+    hypothesis_id = hypothesis_id or hypothesis().hypothesis_id
     return RebuttalBatch(rebuttals=[DefenderRebuttal(
         hypothesis_id=hypothesis_id,
         round_number=1,
@@ -135,10 +144,11 @@ def rebuttal(hypothesis_id: str = "hyp-pi-1", evidence: list[str] | None = None)
 
 
 def red_response(
-    hypothesis_id: str = "hyp-pi-1",
+    hypothesis_id: str | None = None,
     disposition: str = "stand",
     evidence: list[str] | None = None,
 ) -> RedResponseBatch:
+    hypothesis_id = hypothesis_id or hypothesis().hypothesis_id
     return RedResponseBatch(responses=[RedResponse(
         hypothesis_id=hypothesis_id,
         round_number=1,
@@ -152,10 +162,11 @@ def red_response(
 
 def adjudication(
     verdict: str = "confirm",
-    hypothesis_id: str = "hyp-pi-1",
+    hypothesis_id: str | None = None,
     round_number: int = 1,
     accepted_evidence: str = "code-bypass",
 ) -> Adjudication:
+    hypothesis_id = hypothesis_id or hypothesis().hypothesis_id
     return Adjudication(
         adjudication_id=f"adj-{hypothesis_id}-{round_number}",
         hypothesis_id=hypothesis_id,
@@ -170,7 +181,8 @@ def adjudication(
     )
 
 
-def generated_test_draft(finding_id: str = "finding-hyp-pi-1") -> GeneratedTestDraft:
+def generated_test_draft(finding_id: str | None = None) -> GeneratedTestDraft:
+    finding_id = finding_id or f"finding-{hypothesis().hypothesis_id}"
     return GeneratedTestDraft(
         test_id="test-pi-1",
         finding_id=finding_id,
@@ -187,7 +199,11 @@ def orchestrator(backend: ScriptedTeamBackend, repo: Path, ledger: FakeLedger | 
     return AssessmentOrchestrator(
         backend=backend,
         evidence_store=RepositoryEvidenceStore.open(repo),
-        ledger=ledger or FakeLedger(),
+        ledger=ledger or FakeLedger(issued_evidence_ids=[
+            *[f"code-profile-{index}" for index in range(50)],
+            "code-hypothesis", "code-filter", "code-bypass",
+            *[f"code-round-{index}" for index in range(1, 5)],
+        ]),
     )
 
 
@@ -206,8 +222,9 @@ def test_debate_confirms_only_after_rebuttal_red_response_and_judgment(tmp_path:
 
     state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
 
-    assert [finding.hypothesis_id for finding in state.findings] == ["hyp-pi-1"]
-    assert state.hypotheses["hyp-pi-1"].status == "confirmed"
+    hypothesis_id = hypothesis().hypothesis_id
+    assert [finding.hypothesis_id for finding in state.findings] == [hypothesis_id]
+    assert state.hypotheses[hypothesis_id].status == "confirmed"
     assert state.discovery.consecutive_empty_sweeps == 2
     assert backend.role_order == [
         "code_team", "red_team", "code_team", "red_team", "judge",
@@ -215,18 +232,18 @@ def test_debate_confirms_only_after_rebuttal_red_response_and_judgment(tmp_path:
     ]
 
 
-def test_red_withdrawal_rejects_without_judge_turn(tmp_path: Path) -> None:
+def test_red_withdrawal_is_finalized_by_a_judge_turn(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
     backend = ScriptedTeamBackend([
         profile_result(store.snapshot_id), HypothesisBatch(hypotheses=[hypothesis()]),
-        rebuttal(), red_response(disposition="withdraw"),
+        rebuttal(), red_response(disposition="withdraw"), adjudication("reject"),
         HypothesisBatch(hypotheses=[]), HypothesisBatch(hypotheses=[]),
     ])
 
     state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
 
-    assert state.hypotheses["hyp-pi-1"].status == "rejected"
-    assert "judge" not in backend.role_order
+    assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
+    assert "judge" in backend.role_order
 
 
 def test_judge_rejection_creates_no_finding(tmp_path: Path) -> None:
@@ -239,8 +256,20 @@ def test_judge_rejection_creates_no_finding(tmp_path: Path) -> None:
 
     state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
 
-    assert state.hypotheses["hyp-pi-1"].status == "rejected"
+    assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
     assert state.findings == []
+
+
+def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    ledger = FakeLedger(issued_evidence_ids=["code-profile-0"])
+    backend = ScriptedTeamBackend([
+        profile_result(store.snapshot_id),
+        HypothesisBatch(hypotheses=[hypothesis()]),
+    ])
+
+    with pytest.raises(ValueError, match="unknown evidence"):
+        asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
 
 
 def test_duplicate_hypothesis_is_not_debated_twice(tmp_path: Path) -> None:
@@ -259,6 +288,23 @@ def test_duplicate_hypothesis_is_not_debated_twice(tmp_path: Path) -> None:
 
     assert len(state.hypotheses) == 1
     assert backend.role_order.count("code_team") == 2
+
+
+def test_orchestrator_replaces_model_hypothesis_id_with_canonical_id(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    expected = hypothesis().hypothesis_id
+    model_hypothesis = hypothesis().model_copy(update={"hypothesis_id": "model-selected-id"})
+    backend = ScriptedTeamBackend([
+        profile_result(store.snapshot_id), HypothesisBatch(hypotheses=[model_hypothesis]),
+        rebuttal(expected), red_response(expected), adjudication(hypothesis_id=expected),
+        HypothesisBatch(hypotheses=[]), HypothesisBatch(hypotheses=[]),
+        generated_test_draft(f"finding-{expected}"),
+    ])
+
+    state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
+
+    assert list(state.hypotheses) == [expected]
+    assert "model-selected-id" not in state.hypotheses
 
 
 def test_fourth_round_forces_a_terminal_judgment(tmp_path: Path) -> None:
@@ -281,7 +327,7 @@ def test_fourth_round_forces_a_terminal_judgment(tmp_path: Path) -> None:
 
     state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
 
-    assert state.hypotheses["hyp-pi-1"].status == "rejected"
+    assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
     assert backend.role_order.count("judge") == 4
 
 
@@ -299,7 +345,7 @@ def test_two_rounds_without_new_evidence_force_final_judgment(tmp_path: Path) ->
 
     state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
 
-    assert state.hypotheses["hyp-pi-1"].status == "rejected"
+    assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
     assert backend.role_order.count("judge") == 2
 
 
@@ -323,7 +369,11 @@ def test_resource_caps_checkpoint_and_interrupt(
     costs: list[float | None] | None,
 ) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
-    ledger = FakeLedger()
+    ledger = FakeLedger(issued_evidence_ids=[
+        *[f"code-profile-{index}" for index in range(50)],
+        "code-hypothesis", "code-filter", "code-bypass",
+        *[f"code-round-{index}" for index in range(1, 5)],
+    ])
     outputs: list[Any] = [
         profile_result(store.snapshot_id, profile_surfaces),
         HypothesisBatch(hypotheses=hypotheses),
@@ -334,11 +384,15 @@ def test_resource_caps_checkpoint_and_interrupt(
             HypothesisBatch(hypotheses=[hypothesis()]),
             rebuttal(),
             red_response(),
-            adjudication(),
+            adjudication("request_more_evidence"),
         ]
     if limit_name == "max_hypotheses":
         outputs.extend([
-            adjudication("reject", hypothesis_id=f"hyp-{index}", accepted_evidence="code-hypothesis")
+            adjudication(
+                "reject",
+                hypothesis_id=hypotheses[index].hypothesis_id,
+                accepted_evidence="code-hypothesis",
+            )
             for index in range(40)
         ])
     backend = ScriptedTeamBackend(
@@ -351,6 +405,12 @@ def test_resource_caps_checkpoint_and_interrupt(
     assert state.phase == "interrupted"
     assert ledger.checkpoints
     assert any(event["event"] == "resource_cap_reached" for event in ledger.events)
+    if limit_name == "max_agent_calls":
+        assert backend.role_order == ["code_team", "red_team", "code_team", "red_team", "judge"]
+        assert state.hypotheses[hypothesis().hypothesis_id].status == "debating"
+    if limit_name == "max_hypotheses":
+        assert backend.role_order.count("judge") == 40
+        assert all(record.status == "rejected" for record in state.hypotheses.values())
 
 
 def test_missing_cost_metadata_interrupts_and_checkpoints(tmp_path: Path) -> None:
@@ -377,9 +437,10 @@ def test_resume_continues_an_interrupted_run(tmp_path: Path) -> None:
     state.agent_calls_used = 0
     state.config.max_cost_usd = 25.0
 
-    resumed = asyncio.run(subject.resume(state))
+    resumed = asyncio.run(orchestrator(backend, tmp_path).resume(state))
 
     assert resumed.phase == "complete"
+    assert backend.session_ids[1] == "code_team-1"
 
 
 def test_resume_rejects_repository_snapshot_mismatch(tmp_path: Path) -> None:

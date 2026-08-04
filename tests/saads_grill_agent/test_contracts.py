@@ -291,6 +291,17 @@ def test_assessment_config_enforces_budget_bounds() -> None:
         AssessmentConfig(target_repo=Path("/repo"), max_agent_calls=2)
 
 
+def test_assessment_state_persists_team_sessions() -> None:
+    state = AssessmentState(
+        config=AssessmentConfig(target_repo=Path("/repo")),
+        snapshot_id="snap-1",
+        team_sessions={"red_team": "session-red"},
+    )
+    restored = AssessmentState.model_validate(state.model_dump(mode="json"))
+
+    assert restored.team_sessions == {"red_team": "session-red"}
+
+
 def test_defender_rebuttal_and_red_response_round_bounds() -> None:
     with pytest.raises(ValidationError):
         DefenderRebuttal(

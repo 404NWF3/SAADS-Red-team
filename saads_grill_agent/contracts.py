@@ -207,6 +207,7 @@ class AssessmentState(ContractModel):
     agent_calls_used: int = Field(default=0, ge=0)
     cost_usd_used: float = Field(default=0.0, ge=0)
     discovery: DiscoveryTracker = Field(default_factory=DiscoveryTracker)
+    team_sessions: dict[str, str] = Field(default_factory=dict)
 
     def register_evidence(self, *evidence_ids: str) -> None:
         for evidence_id in evidence_ids:
