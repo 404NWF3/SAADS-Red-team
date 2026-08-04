@@ -218,47 +218,63 @@ class TeamBackend:
         max_turns: int | None = None,
         enable_subagents: bool = True,
     ) -> TeamTurnResult:
-        options = self._build_options(
-            role,
-            output_model,
-            session_id,
-            audits,
-            max_turns=max_turns,
-            enable_subagents=enable_subagents,
-        )
-        structured_output: Any = None
-        result_session_id = session_id or ""
-        total_cost_usd: float | None = None
-        usage: Any = None
-        try:
-            async for message in self._sdk_query(prompt=prompt, options=options):
-                if not isinstance(message, ResultMessage):
+        last_error: Exception | None = None
+        for attempt in range(3):
+            options = self._build_options(
+                role,
+                output_model,
+                session_id,
+                audits,
+                max_turns=max_turns,
+                # Retries drop subagents — they often burn the turn without
+                # returning parent structured output.
+                enable_subagents=enable_subagents and attempt == 0,
+            )
+            structured_output: Any = None
+            result_session_id = session_id or ""
+            total_cost_usd: float | None = None
+            usage: Any = None
+            try:
+                async for message in self._sdk_query(prompt=prompt, options=options):
+                    if not isinstance(message, ResultMessage):
+                        continue
+                    result_session_id = message.session_id or result_session_id
+                    if message.subtype != "success" or message.is_error:
+                        raise TeamTurnError(f"team turn failed: {message.subtype}")
+                    structured_output = message.structured_output
+                    total_cost_usd = getattr(message, "total_cost_usd", None)
+                    usage = getattr(message, "usage", None)
+            except TeamTurnError as exc:
+                last_error = exc
+                if "error_max_" in str(exc) and attempt < 2:
                     continue
-                result_session_id = message.session_id or result_session_id
-                if message.subtype != "success" or message.is_error:
-                    raise TeamTurnError(f"team turn failed: {message.subtype}")
-                structured_output = message.structured_output
-                total_cost_usd = getattr(message, "total_cost_usd", None)
-                usage = getattr(message, "usage", None)
-        except TeamTurnError:
-            raise
-        except Exception as exc:  # noqa: BLE001 - normalize SDK errors
-            raise TeamTurnError("team turn execution failed") from exc
+                raise
+            except Exception as exc:  # noqa: BLE001 - normalize SDK errors
+                raise TeamTurnError("team turn execution failed") from exc
 
-        if structured_output is None:
-            raise TeamTurnError("team turn returned no structured output")
-        try:
-            validated = output_model.model_validate(structured_output)
-        except ValidationError as exc:
-            raise TeamTurnError(
-                "team turn structured output failed local validation"
-            ) from exc
-        return TeamTurnResult(
-            output=validated,
-            session_id=result_session_id,
-            total_cost_usd=total_cost_usd,
-            usage=usage,
-        )
+            if structured_output is None:
+                last_error = TeamTurnError("team turn returned no structured output")
+                if attempt < 2:
+                    continue
+                raise last_error
+            try:
+                validated = output_model.model_validate(structured_output)
+            except ValidationError as exc:
+                last_error = TeamTurnError(
+                    "team turn structured output failed local validation"
+                )
+                last_error.__cause__ = exc
+                if attempt < 2:
+                    continue
+                raise last_error from exc
+            return TeamTurnResult(
+                output=validated,
+                session_id=result_session_id,
+                total_cost_usd=total_cost_usd,
+                usage=usage,
+            )
+        assert last_error is not None
+        raise last_error
 
     def _build_options(
         self,
