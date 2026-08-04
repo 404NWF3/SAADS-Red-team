@@ -36,13 +36,21 @@ from saads_grill_agent.teams import (
 class FakeLedger:
     checkpoints: list[Any] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
-    issued_evidence_ids: list[str] = field(default_factory=list)
+    _issued_evidence_ids: list[str] = field(default_factory=list)
 
     def checkpoint(self, state: Any) -> None:
         self.checkpoints.append(state.model_copy(deep=True))
 
     def append_event(self, event: str, **details: Any) -> None:
         self.events.append({"event": event, **details})
+
+    def record_issued_evidence(self, *evidence_ids: str) -> None:
+        for evidence_id in evidence_ids:
+            if evidence_id not in self._issued_evidence_ids:
+                self._issued_evidence_ids.append(evidence_id)
+
+    def list_issued_evidence(self) -> list[str]:
+        return list(self._issued_evidence_ids)
 
 
 class ScriptedTeamBackend:
@@ -195,15 +203,21 @@ def generated_test_draft(finding_id: str | None = None) -> GeneratedTestDraft:
     )
 
 
+def default_ledger() -> FakeLedger:
+    ledger = FakeLedger()
+    ledger.record_issued_evidence(
+        *[f"code-profile-{index}" for index in range(50)],
+        "code-hypothesis", "code-filter", "code-bypass",
+        *[f"code-round-{index}" for index in range(1, 5)],
+    )
+    return ledger
+
+
 def orchestrator(backend: ScriptedTeamBackend, repo: Path, ledger: FakeLedger | None = None) -> AssessmentOrchestrator:
     return AssessmentOrchestrator(
         backend=backend,
         evidence_store=RepositoryEvidenceStore.open(repo),
-        ledger=ledger or FakeLedger(issued_evidence_ids=[
-            *[f"code-profile-{index}" for index in range(50)],
-            "code-hypothesis", "code-filter", "code-bypass",
-            *[f"code-round-{index}" for index in range(1, 5)],
-        ]),
+        ledger=ledger or default_ledger(),
     )
 
 
@@ -262,7 +276,8 @@ def test_judge_rejection_creates_no_finding(tmp_path: Path) -> None:
 
 def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
-    ledger = FakeLedger(issued_evidence_ids=["code-profile-0"])
+    ledger = FakeLedger()
+    ledger.record_issued_evidence("code-profile-0")
     backend = ScriptedTeamBackend([
         profile_result(store.snapshot_id),
         HypothesisBatch(hypotheses=[hypothesis()]),
@@ -305,6 +320,34 @@ def test_orchestrator_replaces_model_hypothesis_id_with_canonical_id(tmp_path: P
 
     assert list(state.hypotheses) == [expected]
     assert "model-selected-id" not in state.hypotheses
+
+
+def test_refined_hypothesis_replaces_its_model_selected_id(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    initial = hypothesis()
+    revised = hypothesis(root_cause="Refined root cause").model_copy(
+        update={"hypothesis_id": "nonsense-model-id"}
+    )
+    backend = ScriptedTeamBackend([
+        profile_result(store.snapshot_id), HypothesisBatch(hypotheses=[initial]),
+        rebuttal(initial.hypothesis_id),
+        RedResponseBatch(responses=[RedResponse(
+            hypothesis_id=initial.hypothesis_id,
+            round_number=1,
+            disposition="refine",
+            reasoning=["The root cause is more specific."],
+            revised_hypothesis=revised,
+            new_code_evidence_ids=["code-bypass"],
+            new_graph_evidence_ids=[],
+        )]),
+        adjudication("reject", hypothesis_id=initial.hypothesis_id),
+        HypothesisBatch(hypotheses=[]), HypothesisBatch(hypotheses=[]),
+    ])
+
+    state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
+
+    assert state.hypotheses[initial.hypothesis_id].hypothesis.hypothesis_id == derive_hypothesis_id(revised)
+    assert state.hypotheses[initial.hypothesis_id].hypothesis.hypothesis_id != "nonsense-model-id"
 
 
 def test_fourth_round_forces_a_terminal_judgment(tmp_path: Path) -> None:
@@ -369,11 +412,7 @@ def test_resource_caps_checkpoint_and_interrupt(
     costs: list[float | None] | None,
 ) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
-    ledger = FakeLedger(issued_evidence_ids=[
-        *[f"code-profile-{index}" for index in range(50)],
-        "code-hypothesis", "code-filter", "code-bypass",
-        *[f"code-round-{index}" for index in range(1, 5)],
-    ])
+    ledger = default_ledger()
     outputs: list[Any] = [
         profile_result(store.snapshot_id, profile_surfaces),
         HypothesisBatch(hypotheses=hypotheses),
@@ -415,7 +454,7 @@ def test_resource_caps_checkpoint_and_interrupt(
 
 def test_missing_cost_metadata_interrupts_and_checkpoints(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
-    ledger = FakeLedger()
+    ledger = default_ledger()
     backend = ScriptedTeamBackend([profile_result(store.snapshot_id)], costs=[None])
 
     state = asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))

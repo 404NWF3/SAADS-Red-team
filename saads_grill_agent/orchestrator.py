@@ -31,11 +31,15 @@ from saads_grill_agent.teams import (
 
 
 class AssessmentLedger(Protocol):
-    """The small persistence surface needed before the full ledger exists."""
+    """Persistence surface; Task 6 records IDs when MCP tools issue evidence."""
 
     def checkpoint(self, state: AssessmentState) -> None: ...
 
     def append_event(self, event: str, **details: Any) -> None: ...
+
+    def record_issued_evidence(self, *evidence_ids: str) -> None: ...
+
+    def list_issued_evidence(self) -> list[str]: ...
 
 
 class ProfileResult(BaseModel):
@@ -78,7 +82,7 @@ class AssessmentOrchestrator:
 
     async def run(self, config: AssessmentConfig) -> AssessmentState:
         state = AssessmentState(config=config, snapshot_id=self._store.snapshot_id)
-        state.register_evidence(*getattr(self._ledger, "issued_evidence_ids", []))
+        state.register_evidence(*self._ledger.list_issued_evidence())
         return await self._continue(state)
 
     async def resume(self, state: AssessmentState) -> AssessmentState:
@@ -198,8 +202,17 @@ class AssessmentOrchestrator:
                         *response.revised_hypothesis.code_evidence_ids,
                         *response.revised_hypothesis.graph_evidence_ids,
                     )
+                    # The thread key remains stable so the current judge turn can
+                    # adjudicate it; the stored hypothesis always has a canonical ID.
+                    revised = response.revised_hypothesis.model_copy(
+                        update={
+                            "hypothesis_id": derive_hypothesis_id(
+                                response.revised_hypothesis
+                            )
+                        }
+                    )
                     state.hypotheses[hypothesis_id] = HypothesisRecord(
-                        hypothesis=response.revised_hypothesis,
+                        hypothesis=revised,
                         status="debating",
                         final_adjudication_id=None,
                     )
