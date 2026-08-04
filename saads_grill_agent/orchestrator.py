@@ -175,9 +175,25 @@ class AssessmentOrchestrator:
             if len(state.hypotheses) >= state.config.max_hypotheses:
                 raise _ResourceLimit("max_hypotheses")
             canonical_id = derive_hypothesis_id(hypothesis)
-            canonical = hypothesis.model_copy(update={"hypothesis_id": canonical_id})
-            self._require_issued(
-                state, *canonical.code_evidence_ids, *canonical.graph_evidence_ids
+            code_ids = [
+                evidence_id
+                for evidence_id in hypothesis.code_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            graph_ids = [
+                evidence_id
+                for evidence_id in hypothesis.graph_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            if not code_ids and not graph_ids:
+                # Drop model-invented citations rather than aborting discovery.
+                continue
+            canonical = hypothesis.model_copy(
+                update={
+                    "hypothesis_id": canonical_id,
+                    "code_evidence_ids": code_ids,
+                    "graph_evidence_ids": graph_ids,
+                }
             )
             state.hypotheses[canonical_id] = HypothesisRecord(
                 hypothesis=canonical, status="debating", final_adjudication_id=None
