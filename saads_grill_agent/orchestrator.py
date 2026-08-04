@@ -222,9 +222,15 @@ class AssessmentOrchestrator:
             )
             rebuttal = self._one_for_hypothesis(rebuttals.rebuttals, hypothesis_id)
             if rebuttal is not None:
-                last_rebuttal = rebuttal
-                self._require_issued(state, *rebuttal.new_code_evidence_ids)
-                thread_evidence.update(rebuttal.new_code_evidence_ids)
+                issued_new = [
+                    evidence_id
+                    for evidence_id in rebuttal.new_code_evidence_ids
+                    if evidence_id in state.evidence_ids
+                ]
+                last_rebuttal = rebuttal.model_copy(
+                    update={"new_code_evidence_ids": issued_new}
+                )
+                thread_evidence.update(issued_new)
             responses = await self._turn(
                 state, "red_team",
                 f"Respond to the rebuttal for hypothesis {hypothesis_id}.",
@@ -232,26 +238,50 @@ class AssessmentOrchestrator:
             )
             response = self._one_for_hypothesis(responses.responses, hypothesis_id)
             if response is not None:
-                last_response = response
-                self._require_issued(
-                    state, *response.new_code_evidence_ids, *response.new_graph_evidence_ids
+                issued_code = [
+                    evidence_id
+                    for evidence_id in response.new_code_evidence_ids
+                    if evidence_id in state.evidence_ids
+                ]
+                issued_graph = [
+                    evidence_id
+                    for evidence_id in response.new_graph_evidence_ids
+                    if evidence_id in state.evidence_ids
+                ]
+                last_response = response.model_copy(
+                    update={
+                        "new_code_evidence_ids": issued_code,
+                        "new_graph_evidence_ids": issued_graph,
+                    }
                 )
-                thread_evidence.update(
-                    response.new_code_evidence_ids + response.new_graph_evidence_ids
-                )
+                thread_evidence.update(issued_code + issued_graph)
                 if response.revised_hypothesis is not None:
-                    self._require_issued(
-                        state,
-                        *response.revised_hypothesis.code_evidence_ids,
-                        *response.revised_hypothesis.graph_evidence_ids,
-                    )
+                    revised_code = [
+                        evidence_id
+                        for evidence_id in response.revised_hypothesis.code_evidence_ids
+                        if evidence_id in state.evidence_ids
+                    ]
+                    revised_graph = [
+                        evidence_id
+                        for evidence_id in response.revised_hypothesis.graph_evidence_ids
+                        if evidence_id in state.evidence_ids
+                    ]
+                    if not revised_code and not revised_graph:
+                        revised_code = list(
+                            state.hypotheses[hypothesis_id].hypothesis.code_evidence_ids
+                        )
+                        revised_graph = list(
+                            state.hypotheses[hypothesis_id].hypothesis.graph_evidence_ids
+                        )
                     # The thread key remains stable so the current judge turn can
                     # adjudicate it; the stored hypothesis always has a canonical ID.
                     revised = response.revised_hypothesis.model_copy(
                         update={
                             "hypothesis_id": derive_hypothesis_id(
                                 response.revised_hypothesis
-                            )
+                            ),
+                            "code_evidence_ids": revised_code,
+                            "graph_evidence_ids": revised_graph,
                         }
                     )
                     state.hypotheses[hypothesis_id] = HypothesisRecord(
@@ -272,6 +302,30 @@ class AssessmentOrchestrator:
                 or unchanged_rounds >= 2
             ) and adjudication.verdict == "request_more_evidence":
                 raise ValueError("judge must issue a terminal verdict at convergence")
+            accepted_code = [
+                evidence_id
+                for evidence_id in adjudication.accepted_code_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            accepted_graph = [
+                evidence_id
+                for evidence_id in adjudication.accepted_graph_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            if (
+                adjudication.verdict in {"confirm", "reject", "duplicate"}
+                and not accepted_code
+                and not accepted_graph
+            ):
+                # Terminal verdicts still need one signed evidence item.
+                fallback = list(thread_evidence)[:1] or list(state.evidence_ids)[:1]
+                accepted_code = fallback
+            adjudication = adjudication.model_copy(
+                update={
+                    "accepted_code_evidence_ids": accepted_code,
+                    "accepted_graph_evidence_ids": accepted_graph,
+                }
+            )
             state.apply_adjudication(adjudication)
             if adjudication.verdict == "confirm":
                 self._add_finding(

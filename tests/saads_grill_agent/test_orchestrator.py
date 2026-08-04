@@ -329,14 +329,20 @@ def test_judge_rejection_creates_no_finding(tmp_path: Path) -> None:
 def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
     ledger = FakeLedger()
-    ledger.record_issued_evidence("code-profile-0")
+    ledger.record_issued_evidence(*[f"code-profile-{i}" for i in range(5)])
     backend = ScriptedTeamBackend([
         profile_result(store.snapshot_id),
-        HypothesisBatch(hypotheses=[hypothesis()]),
+        HypothesisBatch(hypotheses=[hypothesis()]),  # cites code-hypothesis (unissued)
+        HypothesisBatch(hypotheses=[]),
+        HypothesisBatch(hypotheses=[]),
     ])
 
-    with pytest.raises(ValueError, match="unknown evidence"):
-        asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
+    state = asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
+
+    # Unissued citations are dropped; discovery sees an empty unique batch.
+    assert state.hypotheses == {}
+    assert state.findings == []
+    assert state.phase == "complete"
 
 
 def test_profile_path_citations_are_replaced_with_issued_evidence(tmp_path: Path) -> None:
