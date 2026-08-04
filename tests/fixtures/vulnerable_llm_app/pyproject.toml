@@ -1,0 +1,17 @@
+[project]
+name = "vulnerable-llm-app"
+version = "0.1.0"
+description = "Deterministic fixture LLM app with seeded trust-boundary flaws"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "pydantic>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -13,6 +13,7 @@ backups/
 summary_input/
 reports/.cache/
 artifacts/attack_cases/
+artifacts/grill_runs/
 
 # Raw snapshots are reproducible from the source registry and manifest.
 data/raw/

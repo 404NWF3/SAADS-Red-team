@@ -121,3 +121,22 @@ uv run pytest -q
 uv run python scripts/evaluate_queries.py --smoke
 uv run python scripts/graphrag_cli.py query --root . --method local "你的问题"
 ```
+
+## 对抗性仓库审查（saads_grill_agent）
+
+`saads_grill_agent` 对**明确授权的本地** LLM 应用仓库做只读、多智能体代码审计。目标仓库始终视为不可信数据：不加载其 `.claude` / Skills / MCP / hooks 作为指令，也不连接目标模型、部署环境或外部网络。
+
+安全模型要点：
+
+- 需要非空 `--authorization-ref` 才可启动；拒绝 URL / 远程仓库路径。
+- 红队与代码团队只能通过只读 MCP 工具引用已签发证据；只有独立裁判可确认或驳回假设。
+- 生成的回归测试草稿只写入评估产物目录（默认 `artifacts/grill_runs/`），**不写入目标仓库、不自动执行**，并禁止网络、系统命令、凭据读取和破坏性文件操作。
+- `.env` 仅从本 SAADS 项目根加载；复用现有 GraphRAG 与 DeepSeek Agent SDK 约定。
+- 不改变现有 `python -m saads_attack_agent` 命令。
+
+```powershell
+uv run python -m saads_grill_agent start TARGET_REPO --authorization-ref "ticket-or-approval-id"
+uv run python -m saads_grill_agent resume RUN_DIR
+```
+
+可选参数：`--goal`、`--profile profile.yaml`、`--output-root artifacts/grill_runs`、`--max-rounds 4`、`--max-cost-usd 25`。
