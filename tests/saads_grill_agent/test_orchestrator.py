@@ -330,17 +330,23 @@ def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
     ledger = FakeLedger()
     ledger.record_issued_evidence(*[f"code-profile-{i}" for i in range(5)])
+    # Unissued citation is rewritten to the profiled surface's issued evidence,
+    # then a normal debate proceeds to a reject verdict.
     backend = ScriptedTeamBackend([
         profile_result(store.snapshot_id),
         HypothesisBatch(hypotheses=[hypothesis()]),  # cites code-hypothesis (unissued)
+        rebuttal(),
+        red_response(),
+        adjudication("reject"),
         HypothesisBatch(hypotheses=[]),
         HypothesisBatch(hypotheses=[]),
     ])
 
     state = asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
 
-    # Unissued citations are dropped; discovery sees an empty unique batch.
-    assert state.hypotheses == {}
+    hyp_id = next(iter(state.hypotheses))
+    assert state.hypotheses[hyp_id].hypothesis.code_evidence_ids == ["code-profile-0"]
+    assert state.hypotheses[hyp_id].status == "rejected"
     assert state.findings == []
     assert state.phase == "complete"
 
