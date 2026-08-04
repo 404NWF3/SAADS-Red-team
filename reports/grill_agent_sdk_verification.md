@@ -2,29 +2,45 @@
 
 **Overall Status**: FAIL
 
-**Summary**: Offline SDK configuration and unit gates pass. An authorized live fixture assessment was attempted twice (`start`, then `resume`) against `tests/fixtures/vulnerable_llm_app`. Both attempts reached the live Claude Agent SDK / DeepSeek path and GraphRAG load, then aborted on the first code-team profiling turn with `Assessment failed: team turn failed: error_max_turns`. The fixture recursive SHA-256 manifest was unchanged. Acceptance facts could not be validated because the run never left `phase=intake` with empty hypotheses/findings.
+**Summary**: Offline SDK configuration and unit gates pass after raising `TEAM_MAX_TURNS` to 40 and tightening the profiling prompt. A fresh live fixture assessment then completed the profiling turn far enough to return structured output, but aborted with `Assessment failed: unknown evidence id: ev-main-chat` (fabricated / unissued evidence ID). Fixture SHA-256 manifest unchanged. Acceptance facts still not met.
 
 ## Critical Issues
 
-- **Live acceptance failed (not an API-key / GraphRAG-index / network blocker).** Exact error:
+- **Live acceptance still failed after the turn-budget fix (not an API-key / GraphRAG-index / network blocker).**
+
+  ### Attempt A (pre-fix, committed in `75621c1`)
+
+  Exact error:
 
   ```text
   Assessment failed: team turn failed: error_max_turns
   ```
 
-  Observed on:
-  1. `uv run python -m saads_grill_agent start tests/fixtures/vulnerable_llm_app --authorization-ref "fixture-live-acceptance" --goal "审查提示注入、工具调用和敏感信息泄露" --max-cost-usd 25`
-  2. `uv run python -m saads_grill_agent resume artifacts/grill_runs/20260804T090649Z-a17872c1`
+  Run: `artifacts/grill_runs/20260804T090649Z-a17872c1` — stuck at `phase=intake` under `TEAM_MAX_TURNS=12`.
 
-  Run directory: `artifacts/grill_runs/20260804T090649Z-a17872c1` (`authorization_ref=fixture-live-acceptance`, `snapshot_id=snap-cbb9c91fe566e516`). `run_state.json` remains `phase=intake`, `profile=null`, `hypotheses={}`, `findings=[]`, `team_sessions={}`. Exit code `1` (not resumable interrupted state `3`).
+  ### Attempt B (post-fix `f468a3c`)
 
-- Seeded-vuln terminal states, defended file-write rejection, empty discovery sweeps, unexecuted generated tests, and report/artifact ID agreement **were not produced** by a completed live run.
+  Command:
+
+  ```text
+  uv run python -m saads_grill_agent start tests/fixtures/vulnerable_llm_app --authorization-ref "fixture-live-acceptance" --goal "审查提示注入、工具调用和敏感信息泄露" --max-cost-usd 25
+  ```
+
+  Exact error:
+
+  ```text
+  Assessment failed: unknown evidence id: ev-main-chat
+  ```
+
+  Run: `artifacts/grill_runs/20260804T092218Z-25a7de60` — disk checkpoint still `phase=intake`, `profile=null`, `hypotheses={}`, `findings=[]`, `issued_evidence=[]`, empty `code_evidence.jsonl`. Profiling returned a `ProfileResult` that cited `ev-main-chat`, which was not a ledger-issued signed evidence ID from `read_repository_snippet` / GraphRAG tools. Exit code `1`.
+
+- Seeded-vuln terminal states, defended file-write rejection, empty discovery sweeps, unexecuted generated tests, and report/artifact ID agreement **were not produced**.
 
 ## Warnings
 
 - `claude-agent-sdk` remains pinned at `0.2.122` (project-wide).
 - `ClaudeAgentOptions.tools` is always `["Agent"]` even for the judge; isolation relies on empty `agents` and judge `allowed_tools` omitting `Agent`.
-- Live failure mode is `error_max_turns` on the profiling turn (`max_turns=12`), suggesting the live model/session exhausted turns before structured `ProfileResult` output rather than a missing credential/index.
+- Live MCP audit lists (`code_audit` / `graph_audit` in `__main__.py`) and PostToolUse hooks are not yet bridged into `AssessmentLedger.record_issued_evidence` / `state.register_evidence` during a turn; even successful tool-signed IDs would need that bridge before `_require_profile_evidence` can accept them. Attempt B’s fabricated `ev-main-chat` ID would fail regardless.
 
 ## Passed Checks
 
@@ -40,75 +56,47 @@
 
 ### Strict MCP + tool surface
 
-- Live CLI wires only in-process MCP servers: `repository` (`create_repository_server`) and `security_graph` (`create_security_graph_server`).
+- Live CLI wires only in-process MCP servers: `repository` and `security_graph`.
 - `strict_mcp_config=True` on every team turn.
-- Allowed MCP tools for grill teams:
-  - `mcp__repository__list_repository`
-  - `mcp__repository__search_repository`
-  - `mcp__repository__read_repository_snippet`
-  - `mcp__security_graph__query_security_graph` (red + judge only; code team / code subagents do not get GraphRAG)
-- Repository and security-graph MCP tools use `ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)`.
-- No Write, Edit, Bash, Shell, WebFetch, or other network/execute tools are registered for grill teams.
+- Allowed MCP tools: repository list/search/snippet (+ GraphRAG for red/judge only).
+- No Write, Edit, Bash, Shell, WebFetch, or other network/execute tools for grill teams.
+- Repository and security-graph tools use read-only MCP annotations.
 
-### Permissions, settings isolation, structured outputs, resume, hooks, cost
+### Permissions, settings isolation, structured outputs, resume, hooks, cost / turns
 
-- `permission_mode="dontAsk"` (never `bypassPermissions` / `acceptEdits`).
-- `setting_sources=[]` so target-repo `.claude` / `CLAUDE.md` / Skills / hooks are not loaded as instructions; repository content is untrusted data via read-only MCP only.
-- `.env` is loaded only from the SAADS project root in `run_live_assessment` (`load_dotenv(PROJECT_ROOT / ".env")`), not from the target fixture.
-- Every turn sets `output_format={"type": "json_schema", "schema": ...}` and validates with Pydantic locally.
-- `resume=session_id` is passed; `ResultMessage.session_id` is captured for persistence.
-- `PreToolUse` / `PostToolUse` hooks append auditable tool events.
-- Cost limits: team turns `max_budget_usd=1.50`, judge turns `0.75`, `max_turns=12`; CLI `--max-cost-usd` defaults to 25.
+- `permission_mode="dontAsk"`; `setting_sources=[]` (target instructions not loaded).
+- `.env` loaded only from SAADS project root.
+- Structured `output_format` + local Pydantic validation; session `resume`; Pre/Post tool hooks.
+- Cost caps unchanged: team `max_budget_usd=1.50`, judge `0.75`.
+- **Turn budget fix:** `TEAM_MAX_TURNS=40` for red/code team turns; `JUDGE_MAX_TURNS=12` unchanged; optional `run_turn(..., max_turns=)` override supported.
+- Profiling prompt instructs minimal tool use (`list_repository` + few targeted snippets) and ASAP `ProfileResult`.
 
-### Target-instruction isolation
-
-- `cwd` is the resolved target repository for session continuity, but with `setting_sources=[]` the SDK does not load target project settings/instructions.
-- CLI rejects remote URLs; requires nonempty `--authorization-ref`.
-- Resume fails closed on repository snapshot mismatch.
-
-### Offline gates
+### Offline gates (post-fix)
 
 ```text
-uv run pytest -q
-231 passed, 1 skipped in 8.19s
+uv run pytest tests/saads_grill_agent -q
+137 passed, 1 skipped in 7.53s
 
-uv run python -m compileall -q saads_grill_agent
-exit 0
+uv run pytest -q
+231 passed, 1 skipped in 8.28s
 ```
 
 ## Recommendations
 
-- Investigate why the live profiling turn hits `error_max_turns` under DeepSeek (`deepseek-v4-flash`) with structured output + repository MCP + subagents; consider richer profiling prompts, higher `max_turns` for profile-only turns, or confirming structured-output+tool support for the configured model.
-- Consider setting judge `tools=[]` (or omitting `Agent`) for clarity while keeping `allowed_tools` as the hard allowlist.
-- Keep the SDK pin aligned with the rest of the monorepo unless a coordinated upgrade is planned.
+- Wire MCP-issued evidence from live tool audits into `ledger.record_issued_evidence` / `state.register_evidence` before profile/hypothesis validation.
+- Strengthen prompts (and/or reject turns) so agents may only cite `code-*` / GraphRAG evidence IDs returned by tools.
+- Keep judge `max_turns=12` unless judge turns also exhaust.
 
 ## Live Assessment
 
-### Command
+### Fixture integrity (Attempt B)
 
-```text
-uv run python -m saads_grill_agent start tests/fixtures/vulnerable_llm_app --authorization-ref "fixture-live-acceptance" --goal "审查提示注入、工具调用和敏感信息泄露" --max-cost-usd 25
-```
-
-Resume retry:
-
-```text
-uv run python -m saads_grill_agent resume artifacts/grill_runs/20260804T090649Z-a17872c1
-```
-
-### Fixture integrity
-
-- Hash method: sorted per-file SHA-256 manifest of all fixture files excluding `.pytest_cache`, then SHA-256 of that manifest.
-- Before manifest digest: `411ae35b28f3b6f1fb7a90105bf04b4733789087862ccd28a83ff81d4a7a8e87`
-- After start+resume digest: `411ae35b28f3b6f1fb7a90105bf04b4733789087862ccd28a83ff81d4a7a8e87`
+- Hash method: sorted per-file SHA-256 manifest excluding `.pytest_cache`, then SHA-256 of that manifest.
+- Before: `411ae35b28f3b6f1fb7a90105bf04b4733789087862ccd28a83ff81d4a7a8e87`
+- After: `411ae35b28f3b6f1fb7a90105bf04b4733789087862ccd28a83ff81d4a7a8e87`
 - Unchanged: **yes**
 
-### Live environment (not blocked)
-
-- `DEEPSEEK_API_KEY` present; GraphRAG tables under `output/*.parquet` present; `settings.yaml` present; `GRAPHRAG_API_KEY` present.
-- Failure is application/SDK turn exhaustion, not missing keys/index/network.
-
-### Acceptance facts
+### Acceptance facts (Attempt B)
 
 | Fact | Result |
 | --- | --- |
@@ -119,9 +107,9 @@ uv run python -m saads_grill_agent resume artifacts/grill_runs/20260804T090649Z-
 | No hypothesis bypasses code rebuttal + judge | NOT PRODUCED |
 | Two empty discovery sweeps recorded | NOT PRODUCED |
 | Generated tests outside fixture, marked unexecuted | NOT PRODUCED |
-| report.md / findings.json / debate / audit ID agreement | NOT PRODUCED (empty ledger stubs only) |
-| report.md has no coverage / unreviewed-scope / resource-limit / human-validation sections | N/A (empty report stub from ledger create) |
+| report.md / findings.json / debate / audit ID agreement | NOT PRODUCED |
+| report.md has no coverage / unreviewed-scope / resource-limit / human-validation sections | N/A |
 
 ### Result
 
-**LIVE FAILED** — `error_max_turns` on profiling; incomplete run at `artifacts/grill_runs/20260804T090649Z-a17872c1`. Do not treat as a successful live acceptance.
+**LIVE FAILED** — `unknown evidence id: ev-main-chat` at `artifacts/grill_runs/20260804T092218Z-25a7de60`. Prior `error_max_turns` is addressed by `TEAM_MAX_TURNS=40`; live acceptance still incomplete.
