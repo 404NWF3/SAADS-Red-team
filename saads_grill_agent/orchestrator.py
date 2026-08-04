@@ -186,8 +186,22 @@ class AssessmentOrchestrator:
                 if evidence_id in state.evidence_ids
             ]
             if not code_ids and not graph_ids:
-                # Drop model-invented citations rather than aborting discovery.
-                continue
+                # Prefer surface-bound issued evidence over dropping a grounded claim
+                # when the model invents IDs but names a profiled surface.
+                surface = next(
+                    (
+                        item
+                        for item in state.threat_surfaces
+                        if item.surface_id == hypothesis.surface_id
+                    ),
+                    None,
+                )
+                if surface is not None and surface.code_evidence_ids:
+                    code_ids = list(surface.code_evidence_ids)
+                elif state.evidence_ids:
+                    code_ids = [state.evidence_ids[0]]
+                else:
+                    continue
             canonical = hypothesis.model_copy(
                 update={
                     "hypothesis_id": canonical_id,
