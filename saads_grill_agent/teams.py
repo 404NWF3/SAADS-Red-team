@@ -34,8 +34,10 @@ OutputModel = TypeVar("OutputModel", bound=BaseModel)
 
 Role = str  # "red_team" | "code_team" | "judge"
 
-TEAM_BUDGET_USD = 1.50
-JUDGE_BUDGET_USD = 0.75
+# Per-turn SDK budgets. Plan defaults were 1.50/0.75; live DeepSeek profiling
+# with subagents + MCP routinely exceeds that before structured output lands.
+TEAM_BUDGET_USD = 5.00
+JUDGE_BUDGET_USD = 2.00
 # Team turns (profiling/discovery/debate) need headroom for subagents + MCP tools.
 TEAM_MAX_TURNS = 40
 JUDGE_MAX_TURNS = 12
