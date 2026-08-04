@@ -242,6 +242,9 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
         evidence_store=context.store,
         ledger=context.ledger,
         security_graph=graph,
+        publish_test_draft=lambda draft, finding, state: _publish_live_draft(
+            context, draft, finding, state
+        ),
     )
     if context.command == "start":
         state = await orchestrator.run(context.config)
@@ -250,6 +253,24 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
 
     write_reports(state, context.run_dir)
     return state
+
+
+def _publish_live_draft(
+    context: AssessmentRunContext,
+    draft: GeneratedTestDraft,
+    finding: Finding,
+    state: AssessmentState,
+) -> None:
+    profile = state.profile
+    if profile is None:
+        return
+    write_test_artifact(
+        draft,
+        finding,
+        profile,
+        context.run_dir,
+        context.config.target_repo,
+    )
 
 
 def publish_test_draft(
@@ -270,6 +291,12 @@ def publish_test_draft(
 
 
 def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
+    # Reject remotes before other start checks so usage tests exercise URL rejection.
+    if _is_remote_target(args.target_repo):
+        raise CliUsageError(
+            "target must be an authorized local directory, not a URL or remote"
+        )
+
     authorization_ref = (args.authorization_ref or "").strip()
     if not authorization_ref:
         raise CliUsageError("--authorization-ref is required and must be nonempty")

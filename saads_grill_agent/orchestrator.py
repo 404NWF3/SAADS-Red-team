@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict
@@ -75,11 +76,16 @@ class AssessmentOrchestrator:
         evidence_store: RepositoryEvidenceStore,
         ledger: AssessmentLedger,
         security_graph: Any | None = None,
+        publish_test_draft: Callable[
+            [GeneratedTestDraft, Finding, AssessmentState], None
+        ]
+        | None = None,
     ) -> None:
         self._backend = backend
         self._store = evidence_store
         self._ledger = ledger
         self._security_graph = security_graph
+        self._publish_test_draft = publish_test_draft
 
     async def run(self, config: AssessmentConfig) -> AssessmentState:
         state = AssessmentState(config=config, snapshot_id=self._store.snapshot_id)
@@ -256,6 +262,8 @@ class AssessmentOrchestrator:
             if draft.finding_id != finding.finding_id:
                 raise ValueError("test draft does not match its finding")
             finding.generated_test_ids.append(draft.test_id)
+            if self._publish_test_draft is not None:
+                self._publish_test_draft(draft, finding, state)
             self._checkpoint(state)
 
     async def _turn(

@@ -11,6 +11,7 @@ from saads_grill_agent.contracts import (
     Adjudication,
     AssessmentConfig,
     DefenderRebuttal,
+    Finding,
     GeneratedTestDraft,
     RedResponse,
     RepositoryProfile,
@@ -250,6 +251,47 @@ def test_debate_confirms_only_after_rebuttal_red_response_and_judgment(tmp_path:
         "code_team", "red_team", "code_team", "red_team", "judge",
         "red_team", "red_team", "red_team",
     ]
+
+
+def test_confirmed_finding_publishes_test_draft_via_hook(tmp_path: Path) -> None:
+    from saads_grill_agent.test_artifacts import write_test_artifact
+
+    target = tmp_path / "target"
+    target.mkdir()
+    run_dir = tmp_path / "grill-run"
+    run_dir.mkdir()
+    (run_dir / "tests").mkdir()
+    store = RepositoryEvidenceStore.open(target)
+    hyp = hypothesis()
+    finding_id = f"finding-{hyp.hypothesis_id}"
+
+    def publish(draft: GeneratedTestDraft, finding: Finding, state: Any) -> None:
+        assert state.profile is not None
+        write_test_artifact(draft, finding, state.profile, run_dir, target)
+
+    backend = ScriptedTeamBackend([
+        profile_result(store.snapshot_id),
+        HypothesisBatch(hypotheses=[hyp]),
+        rebuttal(),
+        red_response(),
+        adjudication(),
+        HypothesisBatch(hypotheses=[]),
+        HypothesisBatch(hypotheses=[]),
+        generated_test_draft(finding_id),
+    ])
+    orch = AssessmentOrchestrator(
+        backend=backend,
+        evidence_store=store,
+        ledger=default_ledger(),
+        publish_test_draft=publish,
+    )
+
+    state = asyncio.run(orch.run(config(target)))
+
+    artifact = run_dir / "tests" / f"{finding_id}.py"
+    assert state.findings[0].generated_test_ids == ["test-pi-1"]
+    assert artifact.is_file()
+    assert "test_prompt_injection" in artifact.read_text(encoding="utf-8")
 
 
 def test_red_withdrawal_is_finalized_by_a_judge_turn(tmp_path: Path) -> None:

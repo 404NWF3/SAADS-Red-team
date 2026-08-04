@@ -27,4 +27,5 @@ packages = ["llm_defense_graphrag", "saads_attack_agent", "saads_grill_agent"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["fixtures"]
 addopts = "--import-mode=importlib"

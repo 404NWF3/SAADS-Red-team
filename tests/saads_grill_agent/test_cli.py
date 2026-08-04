@@ -85,8 +85,51 @@ def test_start_prints_run_and_report_paths(
     assert "report.md" in output
 
 
-def test_start_requires_explicit_local_repository(tmp_path: Path) -> None:
-    assert main(["start", "https://example.test/repo.git"]) == 2
+def test_start_requires_explicit_local_repository(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    exit_code = main(
+        [
+            "start",
+            "https://example.test/repo.git",
+            "--authorization-ref",
+            "fixture-test",
+            "--output-root",
+            str(tmp_path),
+        ]
+    )
+    assert exit_code == 2
+    err = capsys.readouterr().err.lower()
+    assert "url" in err or "remote" in err
+
+
+def test_fixture_debug_exposes_assembled_system_prompt() -> None:
+    """Offline seed check: debug helper returns the assembled system prompt."""
+    import sys
+
+    root = fixture_repo()
+    inserted = str(root)
+    sys.path.insert(0, inserted)
+    stale = [name for name in sys.modules if name == "app" or name.startswith("app.")]
+    for name in stale:
+        del sys.modules[name]
+    try:
+        from app.debug import assembled_system_prompt_for_debug
+        from app.prompts import TRUSTED_SYSTEM_PROMPT
+
+        prompt = assembled_system_prompt_for_debug("revenue")
+        assert TRUSTED_SYSTEM_PROMPT in prompt
+        assert "Additional context:" in prompt
+    finally:
+        if sys.path and sys.path[0] == inserted:
+            sys.path.pop(0)
+        for name in list(sys.modules):
+            if name == "app" or name.startswith("app."):
+                del sys.modules[name]
+
+    main_py = (root / "app" / "main.py").read_text(encoding="utf-8")
+    assert "/debug/system-prompt" in main_py
+    assert "assembled_system_prompt_for_debug" in main_py
 
 
 def test_start_requires_nonempty_authorization_ref(tmp_path: Path) -> None:

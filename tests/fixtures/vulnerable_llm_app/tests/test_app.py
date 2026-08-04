@@ -34,6 +34,14 @@ def test_tool_name_checked_after_argument_planning() -> None:
     assert plan.prepared_args["_staged_for"] == "not-a-real-tool"
 
 
+def test_debug_endpoint_helper_returns_assembled_system_prompt() -> None:
+    from app.debug import assembled_system_prompt_for_debug
+
+    prompt = assembled_system_prompt_for_debug("revenue")
+    assert TRUSTED_SYSTEM_PROMPT in prompt
+    assert "Additional context:" in prompt
+
+
 def test_write_file_requires_allowlist_and_human_approval() -> None:
     with pytest.raises(PermissionError, match="allowlisted"):
         write_file_tool({"path": "etc/passwd", "content": "x"}, human_approved=True)
