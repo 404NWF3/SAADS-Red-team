@@ -80,12 +80,16 @@ class AssessmentOrchestrator:
             [GeneratedTestDraft, Finding, AssessmentState], None
         ]
         | None = None,
+        code_audit: list[Any] | None = None,
+        graph_audit: list[Any] | None = None,
     ) -> None:
         self._backend = backend
         self._store = evidence_store
         self._ledger = ledger
         self._security_graph = security_graph
         self._publish_test_draft = publish_test_draft
+        self._code_audit = code_audit if code_audit is not None else []
+        self._graph_audit = graph_audit if graph_audit is not None else []
 
     async def run(self, config: AssessmentConfig) -> AssessmentState:
         state = AssessmentState(config=config, snapshot_id=self._store.snapshot_id)
@@ -111,7 +115,10 @@ class AssessmentOrchestrator:
                         "Minimize tool calls: start with list_repository, then at most a few "
                         "targeted search_repository / read_repository_snippet calls for "
                         "model, prompt, tool, RAG, and auth seams. Prefer signed snippets "
-                        "over exhaustive exploration; do not recurse into every file."
+                        "over exhaustive exploration; do not recurse into every file. "
+                        "You MUST cite only evidence_id values returned by "
+                        "read_repository_snippet (and query_security_graph if used); "
+                        "never invent IDs such as ev-*."
                     ),
                     ProfileResult,
                 )
@@ -291,6 +298,7 @@ class AssessmentOrchestrator:
             session_id=state.team_sessions.get(role),
             audits=TeamTurnAudits(),
         )
+        self._sync_issued_evidence(state)
         state.team_sessions[role] = result.session_id
         state.agent_calls_used += 1
         if result.total_cost_usd is None:
@@ -300,6 +308,22 @@ class AssessmentOrchestrator:
         if state.cost_usd_used >= state.config.max_cost_usd:
             raise _ResourceLimit("max_cost_usd")
         return result.output
+
+    def _sync_issued_evidence(self, state: AssessmentState) -> None:
+        """Register evidence IDs issued by MCP tools during the latest turn."""
+        issued: list[str] = []
+        for item in self._code_audit:
+            evidence_id = getattr(item, "evidence_id", None)
+            if isinstance(evidence_id, str) and evidence_id:
+                issued.append(evidence_id)
+        for item in self._graph_audit:
+            evidence_id = getattr(item, "evidence_id", None)
+            if isinstance(evidence_id, str) and evidence_id:
+                issued.append(evidence_id)
+        if not issued:
+            return
+        self._ledger.record_issued_evidence(*issued)
+        state.register_evidence(*issued)
 
     async def _interrupt(self, state: AssessmentState, reason: str) -> AssessmentState:
         state.phase = "interrupted"

@@ -335,6 +335,55 @@ def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
         asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
 
 
+def test_mcp_audit_evidence_is_synced_before_validation(tmp_path: Path) -> None:
+    """Evidence IDs appended by MCP tools become issuable after each turn."""
+    from types import SimpleNamespace
+
+    store = RepositoryEvidenceStore.open(tmp_path)
+    ledger = FakeLedger()
+    code_audit: list[Any] = []
+
+    class AuditInjectingBackend(ScriptedTeamBackend):
+        async def run_turn(
+            self,
+            *,
+            role: str,
+            prompt: str,
+            output_model: type[Any],
+            session_id: str | None,
+            audits: TeamTurnAudits,
+        ) -> TeamTurnResult:
+            if role == "code_team" and not code_audit:
+                code_audit.append(SimpleNamespace(evidence_id="code-profile-0"))
+            return await super().run_turn(
+                role=role,
+                prompt=prompt,
+                output_model=output_model,
+                session_id=session_id,
+                audits=audits,
+            )
+
+    backend = AuditInjectingBackend(
+        [
+            profile_result(store.snapshot_id, surfaces=1),
+            HypothesisBatch(hypotheses=[]),
+            HypothesisBatch(hypotheses=[]),
+        ]
+    )
+    orch = AssessmentOrchestrator(
+        backend=backend,
+        evidence_store=store,
+        ledger=ledger,
+        code_audit=code_audit,
+    )
+
+    state = asyncio.run(orch.run(config(tmp_path)))
+
+    assert "code-profile-0" in state.evidence_ids
+    assert "code-profile-0" in ledger.list_issued_evidence()
+    assert state.phase == "complete"
+
+
 def test_duplicate_hypothesis_is_not_debated_twice(tmp_path: Path) -> None:
     store = RepositoryEvidenceStore.open(tmp_path)
     first = hypothesis("model-wording-one")

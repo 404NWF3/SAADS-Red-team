@@ -245,6 +245,8 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
         publish_test_draft=lambda draft, finding, state: _publish_live_draft(
             context, draft, finding, state
         ),
+        code_audit=code_audit,
+        graph_audit=graph_audit,
     )
     if context.command == "start":
         state = await orchestrator.run(context.config)
