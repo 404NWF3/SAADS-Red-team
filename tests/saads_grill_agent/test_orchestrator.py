@@ -69,9 +69,13 @@ class ScriptedTeamBackend:
         output_model: type[Any],
         session_id: str | None,
         audits: TeamTurnAudits,
+        max_turns: int | None = None,
+        enable_subagents: bool = True,
     ) -> TeamTurnResult:
+        del max_turns  # scripted backend ignores SDK turn limits
         self.role_order.append(role)
         self.session_ids.append(session_id)
+        self.last_enable_subagents = enable_subagents
         output = self.outputs.pop(0)
         return TeamTurnResult(
             output=output_model.model_validate(output),
@@ -352,6 +356,8 @@ def test_mcp_audit_evidence_is_synced_before_validation(tmp_path: Path) -> None:
             output_model: type[Any],
             session_id: str | None,
             audits: TeamTurnAudits,
+            max_turns: int | None = None,
+            enable_subagents: bool = True,
         ) -> TeamTurnResult:
             if role == "code_team" and not code_audit:
                 code_audit.append(SimpleNamespace(evidence_id="code-profile-0"))
@@ -361,6 +367,8 @@ def test_mcp_audit_evidence_is_synced_before_validation(tmp_path: Path) -> None:
                 output_model=output_model,
                 session_id=session_id,
                 audits=audits,
+                max_turns=max_turns,
+                enable_subagents=enable_subagents,
             )
 
     backend = AuditInjectingBackend(

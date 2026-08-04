@@ -112,15 +112,15 @@ class AssessmentOrchestrator:
                     "code_team",
                     (
                         "Profile repository attack surfaces and return ProfileResult ASAP. "
-                        "Minimize tool calls: start with list_repository, then at most a few "
-                        "targeted search_repository / read_repository_snippet calls for "
-                        "model, prompt, tool, RAG, and auth seams. Prefer signed snippets "
-                        "over exhaustive exploration; do not recurse into every file. "
-                        "You MUST cite only evidence_id values returned by "
-                        "read_repository_snippet (and query_security_graph if used); "
-                        "never invent IDs such as ev-*."
+                        "Do not spawn subagents. Use only repository MCP tools: "
+                        "list_repository, then a few search_repository / "
+                        "read_repository_snippet calls for model, prompt, tool, RAG, "
+                        "and auth seams. Prefer signed snippets over exhaustive "
+                        "exploration. You MUST cite only evidence_id values returned by "
+                        "read_repository_snippet; never invent IDs such as ev-*."
                     ),
                     ProfileResult,
+                    enable_subagents=False,
                 )
                 self._require_profile_evidence(state, profile)
                 if profile.profile.snapshot_id != state.snapshot_id:
@@ -288,6 +288,8 @@ class AssessmentOrchestrator:
         role: str,
         prompt: str,
         output_model: type[BaseModel],
+        *,
+        enable_subagents: bool = True,
     ) -> Any:
         if state.agent_calls_used >= state.config.max_agent_calls:
             raise _ResourceLimit("max_agent_calls")
@@ -297,6 +299,7 @@ class AssessmentOrchestrator:
             output_model=output_model,
             session_id=state.team_sessions.get(role),
             audits=TeamTurnAudits(),
+            enable_subagents=enable_subagents,
         )
         self._sync_issued_evidence(state)
         state.team_sessions[role] = result.session_id

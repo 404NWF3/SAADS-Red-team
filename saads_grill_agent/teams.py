@@ -216,9 +216,15 @@ class TeamBackend:
         session_id: str | None,
         audits: TeamTurnAudits,
         max_turns: int | None = None,
+        enable_subagents: bool = True,
     ) -> TeamTurnResult:
         options = self._build_options(
-            role, output_model, session_id, audits, max_turns=max_turns
+            role,
+            output_model,
+            session_id,
+            audits,
+            max_turns=max_turns,
+            enable_subagents=enable_subagents,
         )
         structured_output: Any = None
         result_session_id = session_id or ""
@@ -261,6 +267,7 @@ class TeamBackend:
         session_id: str | None,
         audits: TeamTurnAudits,
         max_turns: int | None = None,
+        enable_subagents: bool = True,
     ) -> ClaudeAgentOptions:
         try:
             sdk_env = _deepseek_environment(self._environment or _default_env())
@@ -268,12 +275,16 @@ class TeamBackend:
             sdk_env = {}
         if max_turns is None:
             max_turns = JUDGE_MAX_TURNS if role == "judge" else TEAM_MAX_TURNS
+        use_subagents = enable_subagents and role in {"red_team", "code_team"}
+        allowed = _role_tools(role)
+        if not use_subagents:
+            allowed = [tool for tool in allowed if tool != "Agent"]
         return ClaudeAgentOptions(
             cwd=str(self._target_repo),
             setting_sources=[],
-            tools=["Agent"],
-            allowed_tools=_role_tools(role),
-            agents=_role_agents(role),
+            tools=["Agent"] if use_subagents else [],
+            allowed_tools=allowed,
+            agents=_role_agents(role) if use_subagents else {},
             mcp_servers=self._mcp_servers,
             strict_mcp_config=True,
             permission_mode="dontAsk",

@@ -159,6 +159,24 @@ def test_code_team_cannot_call_graphrag(tmp_path: Path) -> None:
     assert "graph-grounder" not in code_subagent_names
 
 
+def test_enable_subagents_false_strips_agent_tool(tmp_path: Path) -> None:
+    backend, captured = fake_team_backend(tmp_path, {"rebuttals": []})
+    asyncio.run(backend.run_turn(
+        role="code_team",
+        prompt="Profile without subagents",
+        output_model=RebuttalBatch,
+        session_id=None,
+        audits=empty_audits(),
+        enable_subagents=False,
+    ))
+
+    options = captured.calls[0].options
+    assert "Agent" not in options.allowed_tools
+    assert options.agents == {} or not options.agents
+    assert options.tools == []
+    assert "mcp__repository__read_repository_snippet" in options.allowed_tools
+
+
 def test_judge_cannot_invoke_subagents(tmp_path: Path) -> None:
     backend, captured = fake_team_backend(tmp_path, {
         "adjudication_id": "adj-1",
