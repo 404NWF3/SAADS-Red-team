@@ -44,6 +44,7 @@ def valid_finding_dict() -> dict:
         "hypothesis_id": "hyp-1",
         "severity": "high",
         "confidence": "medium",
+        "confidence_score": 0.7,
         "root_cause": "Untrusted context concatenated with trusted instructions.",
         "attack_path": [
             "attacker controls retrieved context",
@@ -53,6 +54,9 @@ def valid_finding_dict() -> dict:
         "preconditions": ["retrieval returns attacker content"],
         "code_evidence_ids": ["code-1"],
         "graph_evidence_ids": ["threat_modeling-abc"],
+        "judge_rationale": ["The attack path is reachable via signed evidence."],
+        "strongest_rebuttal": ["A partial filter exists."],
+        "rebuttal_failure_reason": "The filter is bypassable.",
         "remediation": "Separate provenance of trusted and untrusted context.",
         "generated_test_ids": ["test-1"],
     }
@@ -81,6 +85,28 @@ def test_only_adjudication_can_finalize_a_hypothesis() -> None:
             status="confirmed",
             final_adjudication_id=None,
         )
+
+
+def test_finding_requires_judge_rationale_and_confidence_score() -> None:
+    payload = valid_finding_dict()
+    del payload["judge_rationale"]
+    with pytest.raises(ValidationError):
+        Finding.model_validate(payload)
+
+    payload = valid_finding_dict()
+    del payload["confidence_score"]
+    with pytest.raises(ValidationError):
+        Finding.model_validate(payload)
+
+    payload = valid_finding_dict()
+    payload["confidence_score"] = 1.5
+    with pytest.raises(ValidationError):
+        Finding.model_validate(payload)
+
+    payload = valid_finding_dict()
+    payload["judge_rationale"] = []
+    with pytest.raises(ValidationError):
+        Finding.model_validate(payload)
 
 
 def test_confirmed_finding_accepts_either_code_or_graph_evidence() -> None:

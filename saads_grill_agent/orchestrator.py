@@ -20,6 +20,7 @@ from saads_grill_agent.contracts import (
     ThreatSurface,
     VulnerabilityHypothesis,
 )
+from saads_grill_agent.report import confidence_level
 from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.teams import (
     HypothesisBatch,
@@ -169,6 +170,8 @@ class AssessmentOrchestrator:
             state.hypotheses[hypothesis_id].hypothesis.code_evidence_ids
             + state.hypotheses[hypothesis_id].hypothesis.graph_evidence_ids
         )
+        last_rebuttal: DefenderRebuttal | None = None
+        last_response: RedResponse | None = None
         for round_number in range(1, state.config.max_rounds_per_hypothesis + 1):
             record = state.hypotheses[hypothesis_id]
             if record.status != "debating":
@@ -181,6 +184,7 @@ class AssessmentOrchestrator:
             )
             rebuttal = self._one_for_hypothesis(rebuttals.rebuttals, hypothesis_id)
             if rebuttal is not None:
+                last_rebuttal = rebuttal
                 self._require_issued(state, *rebuttal.new_code_evidence_ids)
                 thread_evidence.update(rebuttal.new_code_evidence_ids)
             responses = await self._turn(
@@ -190,6 +194,7 @@ class AssessmentOrchestrator:
             )
             response = self._one_for_hypothesis(responses.responses, hypothesis_id)
             if response is not None:
+                last_response = response
                 self._require_issued(
                     state, *response.new_code_evidence_ids, *response.new_graph_evidence_ids
                 )
@@ -231,7 +236,12 @@ class AssessmentOrchestrator:
                 raise ValueError("judge must issue a terminal verdict at convergence")
             state.apply_adjudication(adjudication)
             if adjudication.verdict == "confirm":
-                self._add_finding(state, adjudication)
+                self._add_finding(
+                    state,
+                    adjudication,
+                    rebuttal=last_rebuttal,
+                    red_response=last_response,
+                )
             self._checkpoint(state)
             if state.hypotheses[hypothesis_id].status != "debating":
                 return
@@ -329,26 +339,35 @@ class AssessmentOrchestrator:
         return derive_hypothesis_id(hypothesis)
 
     @staticmethod
-    def _add_finding(state: AssessmentState, adjudication: Adjudication) -> None:
+    def _add_finding(
+        state: AssessmentState,
+        adjudication: Adjudication,
+        *,
+        rebuttal: DefenderRebuttal | None = None,
+        red_response: RedResponse | None = None,
+    ) -> None:
         hypothesis = state.hypotheses[adjudication.hypothesis_id].hypothesis
         if any(finding.hypothesis_id == hypothesis.hypothesis_id for finding in state.findings):
             return
-        confidence = (
-            "high" if adjudication.confidence >= 0.8
-            else "medium" if adjudication.confidence >= 0.5
-            else "low"
-        )
+        strongest_rebuttal = list(rebuttal.arguments) if rebuttal is not None else []
+        rebuttal_failure_reason = ""
+        if rebuttal is not None and red_response is not None:
+            rebuttal_failure_reason = " ".join(red_response.reasoning)
         state.findings.append(Finding(
             finding_id=f"finding-{hypothesis.hypothesis_id}",
             hypothesis_id=hypothesis.hypothesis_id,
             severity="medium",
-            confidence=confidence,
+            confidence=confidence_level(adjudication.confidence),
+            confidence_score=adjudication.confidence,
             root_cause=hypothesis.root_cause,
             attack_path=hypothesis.attack_path,
             impact=hypothesis.impact,
             preconditions=hypothesis.preconditions,
             code_evidence_ids=adjudication.accepted_code_evidence_ids,
             graph_evidence_ids=adjudication.accepted_graph_evidence_ids,
+            judge_rationale=list(adjudication.rationale),
+            strongest_rebuttal=strongest_rebuttal,
+            rebuttal_failure_reason=rebuttal_failure_reason,
             remediation="Validate untrusted input before it crosses this trust boundary.",
         ))
 

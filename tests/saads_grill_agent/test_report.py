@@ -16,6 +16,7 @@ from saads_grill_agent.contracts import (
 from saads_grill_agent.report import (
     confidence_level,
     derive_severity,
+    finalize_finding,
     render_report,
     write_reports,
 )
@@ -128,12 +129,16 @@ def state_with_all_terminal_states() -> AssessmentState:
             hypothesis_id="hyp-confirmed",
             severity="low",
             confidence="low",
+            confidence_score=0.91,
             root_cause=confirmed.root_cause,
             attack_path=confirmed.attack_path,
             impact=confirmed.impact,
             preconditions=confirmed.preconditions,
             code_evidence_ids=["code-rag-41"],
             graph_evidence_ids=[],
+            judge_rationale=["Signed retrieval evidence shows the injection reaches the prompt."],
+            strongest_rebuttal=["A partial content filter exists on ingested documents."],
+            rebuttal_failure_reason="The filter is bypassable via encoded payloads.",
             remediation="Separate trusted instructions from retrieved context.",
             generated_test_ids=["test-1"],
         )
@@ -278,8 +283,18 @@ def test_write_reports_writes_markdown_and_findings_json(tmp_path: Path) -> None
     finding = payload[0]
     assert finding["finding_id"] == "finding-hyp-confirmed"
     assert finding["severity"] == "critical"
-    assert finding["confidence"] in {"high", "medium", "low"}
+    assert finding["confidence"] == "high"
+    assert finding["confidence_score"] == 0.91
     assert "app/rag.py:41" in " ".join(finding["attack_path"])
+    assert finding["judge_rationale"] == [
+        "Signed retrieval evidence shows the injection reaches the prompt."
+    ]
+    assert finding["strongest_rebuttal"] == [
+        "A partial content filter exists on ingested documents."
+    ]
+    assert finding["rebuttal_failure_reason"] == (
+        "The filter is bypassable via encoded payloads."
+    )
 
 
 def test_render_report_is_deterministic() -> None:
@@ -302,5 +317,26 @@ def test_confirmed_finding_section_includes_required_fields() -> None:
         "测试产物状态",
         "code-rag-41",
         "unexecuted",
+        "A partial content filter exists on ingested documents.",
+        "The filter is bypassable via encoded payloads.",
+        "Signed retrieval evidence shows the injection reaches the prompt.",
+        "`high`",
     ):
         assert needle in confirmed
+
+    assert "见裁决" not in confirmed
+    assert "裁判在签发证据下维持确认裁决" not in confirmed
+
+
+def test_finalize_finding_rederives_confidence_from_score() -> None:
+    state = state_with_all_terminal_states()
+    assert state.findings[0].confidence == "low"
+    assert state.findings[0].confidence_score == 0.91
+
+    finalized = finalize_finding(state.findings[0])
+    report = render_report(state)
+
+    assert finalized.confidence == "high"
+    assert "`high`" in report
+    assert "score=0.91" in report
+    assert state.findings[0].confidence == "low"

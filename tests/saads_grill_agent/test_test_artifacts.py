@@ -52,6 +52,7 @@ def make_finding(
         hypothesis_id="hyp-1",
         severity="high",
         confidence="medium",
+        confidence_score=0.7,
         root_cause="Untrusted context concatenated with trusted instructions.",
         attack_path=["attacker controls retrieved context"],
         impact="Instruction hijack.",
@@ -62,6 +63,9 @@ def make_finding(
         graph_evidence_ids=(
             [] if graph_evidence_ids is None else graph_evidence_ids
         ),
+        judge_rationale=["Signed evidence shows the path is reachable."],
+        strongest_rebuttal=["A partial filter exists."],
+        rebuttal_failure_reason="The filter is bypassable.",
         remediation="Separate provenance of trusted and untrusted context.",
     )
 

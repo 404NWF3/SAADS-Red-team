@@ -108,13 +108,14 @@ def escape_text(value: str) -> str:
 
 
 def finalize_finding(finding: Finding) -> Finding:
-    """Return a finding with locally derived severity (confidence unchanged)."""
+    """Return a finding with locally derived severity and confidence."""
     return finding.model_copy(
         update={
             "severity": derive_severity(
                 impact=finding.impact,
                 preconditions=finding.preconditions,
-            )
+            ),
+            "confidence": confidence_level(finding.confidence_score),
         }
     )
 
@@ -256,15 +257,12 @@ def _section_confirmed(state: AssessmentState, findings: list[Finding]) -> str:
             if record is not None
             else finding.finding_id
         )
-        adjudication_id = (
-            record.final_adjudication_id if record is not None else None
-        )
         test_status = _test_artifact_status(finding)
         lines.extend(
             [
                 f"**{escape_text(finding.finding_id)} — {escape_text(title)}**",
                 f"- 严重级别: `{finding.severity}`",
-                f"- 置信度: `{finding.confidence}`",
+                f"- 置信度: `{finding.confidence}` (score={finding.confidence_score})",
                 f"- 根因: {escape_text(finding.root_cause)}",
                 "- 攻击路径:",
                 *[f"  - {escape_text(step)}" for step in finding.attack_path],
@@ -290,19 +288,19 @@ def _section_confirmed(state: AssessmentState, findings: list[Finding]) -> str:
                     )
                     or "（无）"
                 ),
-                "- 防御方最强反驳: "
+                "- 防御方最强反驳:",
+                *(
+                    [f"  - {escape_text(item)}" for item in finding.strongest_rebuttal]
+                    or ["  - （未记录）"]
+                ),
+                "- 反驳为何失败: "
                 + (
-                    f"见裁决 `{escape_text(adjudication_id)}` 台账记录"
-                    if adjudication_id
+                    escape_text(finding.rebuttal_failure_reason)
+                    if finding.rebuttal_failure_reason
                     else "（未记录）"
                 ),
-                "- 反驳为何失败: 裁判在签发证据下维持确认裁决",
-                "- 裁判理由: "
-                + (
-                    f"裁决 `{escape_text(adjudication_id)}` 确认该攻击路径可达"
-                    if adjudication_id
-                    else "（未记录）"
-                ),
+                "- 裁判理由:",
+                *[f"  - {escape_text(item)}" for item in finding.judge_rationale],
                 f"- 修复建议: {escape_text(finding.remediation)}",
                 f"- 测试产物状态: `{test_status}`",
             ]

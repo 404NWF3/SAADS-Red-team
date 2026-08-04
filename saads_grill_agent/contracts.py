@@ -162,12 +162,16 @@ class Finding(ContractModel):
     hypothesis_id: str = Field(min_length=1)
     severity: Severity
     confidence: ConfidenceLevel
+    confidence_score: float = Field(ge=0.0, le=1.0)
     root_cause: str = Field(min_length=1)
     attack_path: list[str] = Field(min_length=1)
     impact: str = Field(min_length=1)
     preconditions: list[str]
     code_evidence_ids: list[str] = Field(default_factory=list)
     graph_evidence_ids: list[str] = Field(default_factory=list)
+    judge_rationale: list[str] = Field(min_length=1)
+    strongest_rebuttal: list[str] = Field(default_factory=list)
+    rebuttal_failure_reason: str = ""
     remediation: str = Field(min_length=1)
     generated_test_ids: list[str] = Field(default_factory=list)
 

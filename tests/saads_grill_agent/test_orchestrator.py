@@ -239,6 +239,12 @@ def test_debate_confirms_only_after_rebuttal_red_response_and_judgment(tmp_path:
     hypothesis_id = hypothesis().hypothesis_id
     assert [finding.hypothesis_id for finding in state.findings] == [hypothesis_id]
     assert state.hypotheses[hypothesis_id].status == "confirmed"
+    finding = state.findings[0]
+    assert finding.judge_rationale == ["The path is reachable."]
+    assert finding.strongest_rebuttal == ["A partial filter exists."]
+    assert finding.rebuttal_failure_reason == "The filter is bypassable."
+    assert finding.confidence_score == 0.9
+    assert finding.confidence == "high"
     assert state.discovery.consecutive_empty_sweeps == 2
     assert backend.role_order == [
         "code_team", "red_team", "code_team", "red_team", "judge",
