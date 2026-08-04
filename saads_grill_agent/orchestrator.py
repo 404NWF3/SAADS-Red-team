@@ -117,14 +117,14 @@ class AssessmentOrchestrator:
                         "read_repository_snippet calls for model, prompt, tool, RAG, "
                         "and auth seams. Prefer signed snippets over exhaustive "
                         "exploration. You MUST cite only evidence_id values returned by "
-                        "read_repository_snippet; never invent IDs such as ev-*."
+                        "read_repository_snippet; never invent IDs such as ev-* "
+                        "and never put file paths in evidence_id fields."
                     ),
                     ProfileResult,
                     enable_subagents=False,
                 )
+                profile = self._normalize_profile_evidence(state, profile)
                 self._require_profile_evidence(state, profile)
-                if profile.profile.snapshot_id != state.snapshot_id:
-                    raise ValueError("profile snapshot does not match the repository snapshot")
                 if len(profile.threat_surfaces) > state.config.max_threat_surfaces:
                     raise _ResourceLimit("max_threat_surfaces")
                 state.profile = profile.profile
@@ -362,6 +362,35 @@ class AssessmentOrchestrator:
                     self._add_finding(state, adjudication)
             except Exception as exc:  # preserve the checkpointed partial assessment
                 self._event("forced_finalization_failed", hypothesis_id=hypothesis_id, error=str(exc))
+
+    def _normalize_profile_evidence(
+        self, state: AssessmentState, profile: ProfileResult
+    ) -> ProfileResult:
+        """Bind profile citations to MCP-issued IDs; drop invented paths/IDs."""
+        issued = list(state.evidence_ids)
+        if not issued:
+            raise ValueError(
+                "profiling produced no signed repository evidence; "
+                "call read_repository_snippet before citing evidence_id values"
+            )
+
+        def keep(ids: list[str]) -> list[str]:
+            kept = [evidence_id for evidence_id in ids if evidence_id in state.evidence_ids]
+            return kept or [issued[0]]
+
+        normalized_profile = profile.profile.model_copy(
+            update={
+                "snapshot_id": state.snapshot_id,
+                "profile_evidence_ids": keep(profile.profile.profile_evidence_ids),
+            }
+        )
+        surfaces = [
+            surface.model_copy(
+                update={"code_evidence_ids": keep(surface.code_evidence_ids)}
+            )
+            for surface in profile.threat_surfaces
+        ]
+        return ProfileResult(profile=normalized_profile, threat_surfaces=surfaces)
 
     def _require_profile_evidence(self, state: AssessmentState, profile: ProfileResult) -> None:
         self._require_issued(state, *profile.profile.profile_evidence_ids)

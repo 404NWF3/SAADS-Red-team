@@ -339,6 +339,53 @@ def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
         asyncio.run(orchestrator(backend, tmp_path, ledger).run(config(tmp_path)))
 
 
+def test_profile_path_citations_are_replaced_with_issued_evidence(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    store = RepositoryEvidenceStore.open(tmp_path)
+    ledger = FakeLedger()
+    code_audit: list[Any] = []
+    bad_profile = profile_result(store.snapshot_id, surfaces=1)
+    bad_profile = ProfileResult(
+        profile=bad_profile.profile.model_copy(
+            update={"profile_evidence_ids": ["README.md"], "snapshot_id": "wrong-snap"}
+        ),
+        threat_surfaces=[
+            bad_profile.threat_surfaces[0].model_copy(
+                update={"code_evidence_ids": ["app/main.py"]}
+            )
+        ],
+    )
+
+    class AuditInjectingBackend(ScriptedTeamBackend):
+        async def run_turn(self, **kwargs: Any) -> TeamTurnResult:
+            if kwargs["role"] == "code_team" and not code_audit:
+                code_audit.append(SimpleNamespace(evidence_id="code-live-1"))
+            return await super().run_turn(**kwargs)
+
+    backend = AuditInjectingBackend(
+        [
+            bad_profile,
+            HypothesisBatch(hypotheses=[]),
+            HypothesisBatch(hypotheses=[]),
+        ]
+    )
+    orch = AssessmentOrchestrator(
+        backend=backend,
+        evidence_store=store,
+        ledger=ledger,
+        code_audit=code_audit,
+    )
+
+    state = asyncio.run(orch.run(config(tmp_path)))
+
+    assert state.profile is not None
+    assert state.profile.snapshot_id == store.snapshot_id
+    assert state.profile.profile_evidence_ids == ["code-live-1"]
+    assert state.threat_surfaces[0].code_evidence_ids == ["code-live-1"]
+    assert state.phase == "complete"
+
+
 def test_mcp_audit_evidence_is_synced_before_validation(tmp_path: Path) -> None:
     """Evidence IDs appended by MCP tools become issuable after each turn."""
     from types import SimpleNamespace
