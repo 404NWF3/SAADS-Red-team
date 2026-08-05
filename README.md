@@ -213,6 +213,7 @@ uv run python -m saads_grill_agent resume RUN_DIR
 - `sdk.*.max_turns: null` 表示不限制 SDK 工具轮次（推荐）；填整数才会封顶。
 - 每次 `start` 会在运行目录写出 `red-team-config.resolved.yaml` 便于复盘。
 - 仍可用：`--goal`、`--profile profile.yaml`、`--output-root`、`--max-rounds`、`--max-cost-usd`。
+- **可选 GraphRAG 知识接地**：默认尝试挂载项目 GraphRAG 与 `ground-red-team-evidence` Skill（软引导红队 / 裁判取证）；`--no-graphrag` 或 YAML `use_graphrag: false` 可关闭。若本地缺少 GraphRAG 索引，评估会自动降级为仅仓库证据，不会因缺 parquet 失败退出。
 
 ### 6. 测试
 

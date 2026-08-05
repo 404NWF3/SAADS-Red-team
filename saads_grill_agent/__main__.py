@@ -336,8 +336,13 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
     if context.command == "start":
         state = await orchestrator.run(context.config)
     else:
-        state = await orchestrator.resume(context.ledger.state)
+        resumed = context.ledger.state
+        resumed.graph_enabled = runtime.enabled
+        resumed.graph_skipped_reason = runtime.skipped_reason
+        state = await orchestrator.resume(resumed)
 
+    state.graph_enabled = runtime.enabled
+    state.graph_skipped_reason = runtime.skipped_reason
     write_reports(state, context.run_dir)
     return state
 
