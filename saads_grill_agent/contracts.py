@@ -64,6 +64,7 @@ class AssessmentConfig(ContractModel):
     max_agent_calls: int | None = Field(default=100, ge=5, le=10000)
     # ``None`` = no global assessment cost ceiling.
     max_cost_usd: float | None = Field(default=25.0, gt=0, le=500)
+    use_graphrag: bool = True
     sdk: SdkLimits = Field(default_factory=SdkLimits)
 
 

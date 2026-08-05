@@ -33,6 +33,7 @@ class RedTeamConfig(ContractModel):
     max_hypotheses: int = Field(default=40, ge=1, le=200)
     max_agent_calls: int | None = Field(default=100, ge=5, le=10000)
     max_cost_usd: float | None = Field(default=25.0, gt=0, le=500)
+    use_graphrag: bool = True
 
     sdk: SdkLimits = Field(default_factory=SdkLimits)
 
@@ -86,6 +87,7 @@ class RedTeamConfig(ContractModel):
             max_hypotheses=self.max_hypotheses,
             max_agent_calls=self.max_agent_calls,
             max_cost_usd=self.max_cost_usd,
+            use_graphrag=self.use_graphrag,
             sdk=self.sdk,
         )
 
@@ -122,6 +124,7 @@ def merge_cli_over_config(
     output_root: Path | None,
     max_rounds: int | None,
     max_cost_usd: float | None,
+    use_graphrag: bool | None = None,
     profile_overrides: dict[str, Any] | None = None,
 ) -> RedTeamConfig:
     """CLI / profile values win when explicitly provided."""
@@ -138,4 +141,6 @@ def merge_cli_over_config(
         updates["max_rounds_per_hypothesis"] = max_rounds
     if max_cost_usd is not None:
         updates["max_cost_usd"] = max_cost_usd
+    if use_graphrag is False:
+        updates["use_graphrag"] = False
     return config.model_copy(update=updates) if updates else config
