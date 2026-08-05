@@ -56,6 +56,37 @@ class _ResourceLimit(RuntimeError):
     pass
 
 
+_GRILL_RED_DISCOVERY = (
+    "Grilling: propose a few falsifiable branches at a time; verify facts before "
+    "hypotheses; name the most likely attack angle on each; if evidence is thin, "
+    "propose fewer hypotheses or return an empty list."
+)
+_GRILL_RED_DEBATE = (
+    "Grilling: focus only on the current hypothesis; any stand must cite issued "
+    "evidence_id values; you may recommend refinements but do not issue final "
+    "verdicts—the judge decides."
+)
+_GRILL_JUDGE = (
+    "Grilling: verify cited evidence first; you may request_more_evidence before "
+    "convergence; issue confirm, reject, or duplicate only as a terminal verdict."
+)
+_GRILL_CODE_REBUTTAL = (
+    "Grilling: falsify with repository evidence in one focused pass against the "
+    "current hypothesis."
+)
+_GRAPH_SKILL_HINT = (
+    "If you need mechanism, control, or similar-pattern background, you may use "
+    "$ground-red-team-evidence (optional—not required)."
+)
+
+
+def _augment_prompt(base: str, grilling: str, *, graph_enabled: bool) -> str:
+    parts = [base, grilling]
+    if graph_enabled:
+        parts.append(_GRAPH_SKILL_HINT)
+    return "\n\n".join(parts)
+
+
 def derive_hypothesis_id(hypothesis: VulnerabilityHypothesis) -> str:
     """Derive the ledger identity from the canonical source-to-sink tuple."""
     source = hypothesis.attack_path[0]
@@ -158,15 +189,19 @@ class AssessmentOrchestrator:
                 surface.surface_id for surface in state.threat_surfaces[:20]
             ) or "(none)"
             evidence_ids = ", ".join(state.evidence_ids[:40]) or "(none)"
-            prompt = (
-                "Propose at most 3 grounded vulnerability hypotheses for this LLM app. "
-                f"Profiled surface_ids: {surface_ids}. "
-                f"Prefer these already-issued evidence_ids: {evidence_ids}. "
-                "Do at most 8 repository tool calls total; search targeted keywords "
-                "(prompt, tool, rag, debug, system) instead of listing the whole repo. "
-                "Cite only issued evidence_id values in HypothesisBatch — never file paths. "
-                "Stop exploring and return HypothesisBatch structured output as soon as "
-                "you have 1–3 solid hypotheses (empty list is allowed if none are grounded)."
+            prompt = _augment_prompt(
+                (
+                    "Propose at most 3 grounded vulnerability hypotheses for this LLM app. "
+                    f"Profiled surface_ids: {surface_ids}. "
+                    f"Prefer these already-issued evidence_ids: {evidence_ids}. "
+                    "Do at most 8 repository tool calls total; search targeted keywords "
+                    "(prompt, tool, rag, debug, system) instead of listing the whole repo. "
+                    "Cite only issued evidence_id values in HypothesisBatch — never file paths. "
+                    "Stop exploring and return HypothesisBatch structured output as soon as "
+                    "you have 1–3 solid hypotheses (empty list is allowed if none are grounded)."
+                ),
+                _GRILL_RED_DISCOVERY,
+                graph_enabled=self._graph_enabled,
             )
             try:
                 batch = await self._turn(
@@ -273,10 +308,14 @@ class AssessmentOrchestrator:
                 rebuttals = await self._turn(
                     state,
                     "code_team",
-                    (
-                        f"Falsify hypothesis {hypothesis_id} with concrete repository "
-                        "evidence. Prefer already-issued evidence_ids; at most 8 tool "
-                        "calls; return RebuttalBatch promptly."
+                    _augment_prompt(
+                        (
+                            f"Falsify hypothesis {hypothesis_id} with concrete repository "
+                            "evidence. Prefer already-issued evidence_ids; at most 8 tool "
+                            "calls; return RebuttalBatch promptly."
+                        ),
+                        _GRILL_CODE_REBUTTAL,
+                        graph_enabled=False,
                     ),
                     RebuttalBatch,
                     enable_subagents=state.config.sdk.enable_subagents_debate,
@@ -306,10 +345,14 @@ class AssessmentOrchestrator:
                 responses = await self._turn(
                     state,
                     "red_team",
-                    (
-                        f"Respond to the rebuttal for hypothesis {hypothesis_id}. "
-                        "Prefer already-issued evidence_ids; at most 8 tool calls; "
-                        "return RedResponseBatch promptly."
+                    _augment_prompt(
+                        (
+                            f"Respond to the rebuttal for hypothesis {hypothesis_id}. "
+                            "Prefer already-issued evidence_ids; at most 8 tool calls; "
+                            "return RedResponseBatch promptly."
+                        ),
+                        _GRILL_RED_DEBATE,
+                        graph_enabled=self._graph_enabled,
                     ),
                     RedResponseBatch,
                     enable_subagents=state.config.sdk.enable_subagents_debate,
@@ -382,7 +425,11 @@ class AssessmentOrchestrator:
                 adjudication = await self._turn(
                     state,
                     "judge",
-                    f"Adjudicate hypothesis {hypothesis_id}; return a terminal verdict at final round.",
+                    _augment_prompt(
+                        f"Adjudicate hypothesis {hypothesis_id}; return a terminal verdict at final round.",
+                        _GRILL_JUDGE,
+                        graph_enabled=self._graph_enabled,
+                    ),
                     Adjudication,
                     max_turns=state.config.sdk.judge_max_turns,
                 )
@@ -449,10 +496,14 @@ class AssessmentOrchestrator:
             adjudication = await self._turn(
                 state,
                 "judge",
-                (
-                    f"A prior debate turn failed ({reason[:200]}). "
-                    f"Issue a terminal judgment for {hypothesis_id}: "
-                    "confirm, reject, or duplicate. Cite issued evidence_ids only."
+                _augment_prompt(
+                    (
+                        f"A prior debate turn failed ({reason[:200]}). "
+                        f"Issue a terminal judgment for {hypothesis_id}: "
+                        "confirm, reject, or duplicate. Cite issued evidence_ids only."
+                    ),
+                    _GRILL_JUDGE,
+                    graph_enabled=self._graph_enabled,
                 ),
                 Adjudication,
                 max_turns=state.config.sdk.judge_max_turns,
@@ -646,7 +697,11 @@ class AssessmentOrchestrator:
                 adjudication = await self._turn(
                     state,
                     "judge",
-                    f"Resource limit reached. Issue a terminal judgment for {hypothesis_id}.",
+                    _augment_prompt(
+                        f"Resource limit reached. Issue a terminal judgment for {hypothesis_id}.",
+                        _GRILL_JUDGE,
+                        graph_enabled=self._graph_enabled,
+                    ),
                     Adjudication,
                     max_turns=state.config.sdk.judge_max_turns,
                     allow_over_cap=allow_over_cap,

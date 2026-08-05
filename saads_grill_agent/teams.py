@@ -56,7 +56,9 @@ GRAPH_TOOL = "mcp__security_graph__query_security_graph"
 # Programmatic subagents (verbatim from the plan).
 RED_GRAPH_PROMPT = (
     "Ground one LLM attack mechanism and its known controls in the security "
-    "graph. Return only structured evidence-backed findings."
+    "graph. Follow the ground-red-team-evidence Skill purpose norms "
+    "(threat_modeling, hypothesis_grounding, adjudication_grounding, "
+    "test_grounding). Return only structured evidence-backed findings."
 )
 ATTACK_PATH_PROMPT = (
     "Trace one proposed source-to-sink attack path through repository evidence "
