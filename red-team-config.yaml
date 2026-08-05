@@ -38,7 +38,7 @@ max_cost_usd: null
 # Soft GraphRAG assist for red_team / judge (and graph-capable subagents).
 # Default true. Set false, or pass --no-graphrag, to run repo-only.
 # If the project index is missing, grill still runs (graph stays off).
-# use_graphrag: true
+use_graphrag: true
 
 # --- Claude Agent SDK limits ------------------------------------------------
 # max_turns: null = unlimited (recommended). Integers cap tool-use round trips

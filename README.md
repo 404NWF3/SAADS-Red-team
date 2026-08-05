@@ -74,10 +74,6 @@
 | 红队（`red_team`） | 提出 / 修正漏洞假设，用代码与图谱证据加压 | 只读仓库 MCP + GraphRAG MCP |
 | 裁判（`judge`） | 唯一可确认 / 驳回 / 判重的角色 | 两侧证据只读访问，无 subagent |
 
-**跨角色通信模式：编排器中介的共享状态（orchestrator-mediated shared-state / hub-and-spoke），不是 A2A。**
-
-三个角色之间没有点对点消息通道，也不实现 Agent-to-Agent（A2A）协议。调度完全由 `AssessmentOrchestrator` 串行完成：决定下一轮谁说话、注入文本 prompt、校验结构化输出（Pydantic），再写入共享的 `AssessmentState` / ledger（假设、反驳、裁决、已签发 `evidence_id`）。下一轮靠这份共享状态推进，角色彼此不直连。辩论阶段是固定顺序的 turn-based sequential debate（`code_team` → `red_team` → `judge`）。各角色使用独立的 Claude Agent SDK 持久 session（`resume`），仅续自己的上下文。角色内部若启用子智能体，走的是 SDK `Agent` tool（parent–subagent），与跨角色 peer 通信无关。
-
 整体流程：
 
 ```mermaid
