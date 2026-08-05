@@ -24,11 +24,14 @@ from saads_grill_agent.contracts import (
 from saads_grill_agent.report import confidence_level
 from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.teams import (
+    DEBATE_MAX_TURNS,
+    DISCOVERY_MAX_TURNS,
     HypothesisBatch,
     RebuttalBatch,
     RedResponseBatch,
     TeamBackend,
     TeamTurnAudits,
+    TeamTurnError,
 )
 
 
@@ -131,10 +134,12 @@ class AssessmentOrchestrator:
                 state.threat_surfaces = profile.threat_surfaces
                 self._checkpoint(state)
 
-            state.phase = "discovery"
-            await self._discover(state)
-            if state.phase == "interrupted":
-                return state
+            discovery_done = state.discovery.consecutive_empty_sweeps >= 2
+            if not discovery_done:
+                state.phase = "discovery"
+                await self._discover(state)
+                if state.phase == "interrupted":
+                    return state
             state.phase = "generating_tests"
             await self._generate_test_drafts(state)
             state.phase = "complete"
@@ -142,27 +147,54 @@ class AssessmentOrchestrator:
             return state
         except _ResourceLimit as exc:
             return await self._interrupt(state, str(exc))
+        except TeamTurnError as exc:
+            # Safety net: never abort the CLI hard on SDK turn exhaustion.
+            self._event("team_turn_failed", reason=str(exc)[:500])
+            return await self._interrupt(state, str(exc))
 
     async def _discover(self, state: AssessmentState) -> None:
         while state.discovery.consecutive_empty_sweeps < 2:
-            batch = await self._turn(
-                state,
-                "red_team",
-                (
-                    "Discover one or more grounded vulnerability hypotheses. "
-                    "Use repository MCP tools and cite only issued evidence_id "
-                    "values (or reuse profiled surface evidence_ids). "
-                    "Return HypothesisBatch structured output."
-                ),
-                HypothesisBatch,
-                enable_subagents=False,
+            surface_ids = ", ".join(
+                surface.surface_id for surface in state.threat_surfaces[:20]
+            ) or "(none)"
+            evidence_ids = ", ".join(state.evidence_ids[:40]) or "(none)"
+            prompt = (
+                "Propose at most 3 grounded vulnerability hypotheses for this LLM app. "
+                f"Profiled surface_ids: {surface_ids}. "
+                f"Prefer these already-issued evidence_ids: {evidence_ids}. "
+                "Do at most 8 repository tool calls total; search targeted keywords "
+                "(prompt, tool, rag, debug, system) instead of listing the whole repo. "
+                "Cite only issued evidence_id values in HypothesisBatch — never file paths. "
+                "Stop exploring and return HypothesisBatch structured output as soon as "
+                "you have 1–3 solid hypotheses (empty list is allowed if none are grounded)."
             )
+            try:
+                batch = await self._turn(
+                    state,
+                    "red_team",
+                    prompt,
+                    HypothesisBatch,
+                    enable_subagents=False,
+                    max_turns=DISCOVERY_MAX_TURNS,
+                )
+            except TeamTurnError as exc:
+                # Large repos can exhaust SDK turns before structured output lands.
+                # Count that as an empty discovery sweep instead of aborting the run.
+                reason = str(exc)
+                if "error_max_turns" in reason or "no structured output" in reason:
+                    self._event("discovery_turn_failed", reason=reason[:500])
+                    state.discovery.consecutive_empty_sweeps += 1
+                    self._checkpoint(state)
+                    continue
+                raise
             added = self._add_hypotheses(state, batch.hypotheses)
             if not added:
                 state.discovery.consecutive_empty_sweeps += 1
                 self._checkpoint(state)
                 continue
             state.discovery.consecutive_empty_sweeps = 0
+            # Persist hypotheses before debate so a later max_turns failure is resumable.
+            self._checkpoint(state)
             for hypothesis_id in added:
                 await self._debate(state, hypothesis_id)
                 if state.phase == "interrupted":
@@ -237,11 +269,28 @@ class AssessmentOrchestrator:
             if record.status != "debating":
                 return
             before = set(thread_evidence)
-            rebuttals = await self._turn(
-                state, "code_team",
-                f"Falsify hypothesis {hypothesis_id} with concrete repository evidence.",
-                RebuttalBatch,
-            )
+            try:
+                rebuttals = await self._turn(
+                    state,
+                    "code_team",
+                    (
+                        f"Falsify hypothesis {hypothesis_id} with concrete repository "
+                        "evidence. Prefer already-issued evidence_ids; at most 8 tool "
+                        "calls; return RebuttalBatch promptly."
+                    ),
+                    RebuttalBatch,
+                    enable_subagents=False,
+                    max_turns=DEBATE_MAX_TURNS,
+                )
+            except TeamTurnError as exc:
+                self._event(
+                    "debate_turn_failed",
+                    hypothesis_id=hypothesis_id,
+                    role="code_team",
+                    reason=str(exc)[:500],
+                )
+                await self._force_judge_or_interrupt(state, hypothesis_id, str(exc))
+                return
             rebuttal = self._one_for_hypothesis(rebuttals.rebuttals, hypothesis_id)
             if rebuttal is not None:
                 issued_new = [
@@ -253,11 +302,28 @@ class AssessmentOrchestrator:
                     update={"new_code_evidence_ids": issued_new}
                 )
                 thread_evidence.update(issued_new)
-            responses = await self._turn(
-                state, "red_team",
-                f"Respond to the rebuttal for hypothesis {hypothesis_id}.",
-                RedResponseBatch,
-            )
+            try:
+                responses = await self._turn(
+                    state,
+                    "red_team",
+                    (
+                        f"Respond to the rebuttal for hypothesis {hypothesis_id}. "
+                        "Prefer already-issued evidence_ids; at most 8 tool calls; "
+                        "return RedResponseBatch promptly."
+                    ),
+                    RedResponseBatch,
+                    enable_subagents=False,
+                    max_turns=DEBATE_MAX_TURNS,
+                )
+            except TeamTurnError as exc:
+                self._event(
+                    "debate_turn_failed",
+                    hypothesis_id=hypothesis_id,
+                    role="red_team",
+                    reason=str(exc)[:500],
+                )
+                await self._force_judge_or_interrupt(state, hypothesis_id, str(exc))
+                return
             response = self._one_for_hypothesis(responses.responses, hypothesis_id)
             if response is not None:
                 issued_code = [
@@ -312,11 +378,23 @@ class AssessmentOrchestrator:
                         final_adjudication_id=None,
                     )
             unchanged_rounds = unchanged_rounds + 1 if thread_evidence == before else 0
-            adjudication = await self._turn(
-                state, "judge",
-                f"Adjudicate hypothesis {hypothesis_id}; return a terminal verdict at final round.",
-                Adjudication,
-            )
+            try:
+                adjudication = await self._turn(
+                    state,
+                    "judge",
+                    f"Adjudicate hypothesis {hypothesis_id}; return a terminal verdict at final round.",
+                    Adjudication,
+                    max_turns=DEBATE_MAX_TURNS,
+                )
+            except TeamTurnError as exc:
+                self._event(
+                    "debate_turn_failed",
+                    hypothesis_id=hypothesis_id,
+                    role="judge",
+                    reason=str(exc)[:500],
+                )
+                await self._force_judge_or_interrupt(state, hypothesis_id, str(exc))
+                return
             if adjudication.hypothesis_id != hypothesis_id:
                 raise ValueError("judge adjudicated a different hypothesis")
             if (
@@ -360,18 +438,105 @@ class AssessmentOrchestrator:
             if state.hypotheses[hypothesis_id].status != "debating":
                 return
 
-    async def _generate_test_drafts(self, state: AssessmentState) -> None:
-        for finding in state.findings:
-            draft = await self._turn(
-                state, "red_team",
-                f"Generate a non-executing regression test draft for {finding.finding_id}.",
-                GeneratedTestDraft,
+    async def _force_judge_or_interrupt(
+        self,
+        state: AssessmentState,
+        hypothesis_id: str,
+        reason: str,
+    ) -> None:
+        """Best-effort terminal judgment after a debate turn SDK failure."""
+        try:
+            adjudication = await self._turn(
+                state,
+                "judge",
+                (
+                    f"A prior debate turn failed ({reason[:200]}). "
+                    f"Issue a terminal judgment for {hypothesis_id}: "
+                    "confirm, reject, or duplicate. Cite issued evidence_ids only."
+                ),
+                Adjudication,
+                max_turns=DEBATE_MAX_TURNS,
             )
-            if draft.finding_id != finding.finding_id:
-                raise ValueError("test draft does not match its finding")
-            finding.generated_test_ids.append(draft.test_id)
-            if self._publish_test_draft is not None:
-                self._publish_test_draft(draft, finding, state)
+            if (
+                adjudication.hypothesis_id != hypothesis_id
+                or adjudication.verdict == "request_more_evidence"
+            ):
+                raise ValueError("forced final judgment was not terminal")
+            accepted_code = [
+                evidence_id
+                for evidence_id in adjudication.accepted_code_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            accepted_graph = [
+                evidence_id
+                for evidence_id in adjudication.accepted_graph_evidence_ids
+                if evidence_id in state.evidence_ids
+            ]
+            if not accepted_code and not accepted_graph:
+                hypothesis = state.hypotheses[hypothesis_id].hypothesis
+                accepted_code = list(hypothesis.code_evidence_ids)[:1] or list(
+                    state.evidence_ids
+                )[:1]
+            adjudication = adjudication.model_copy(
+                update={
+                    "accepted_code_evidence_ids": accepted_code,
+                    "accepted_graph_evidence_ids": accepted_graph,
+                }
+            )
+            state.apply_adjudication(adjudication)
+            if adjudication.verdict == "confirm":
+                self._add_finding(state, adjudication)
+            self._checkpoint(state)
+        except Exception as exc:  # keep the run resumable
+            self._event(
+                "forced_finalization_failed",
+                hypothesis_id=hypothesis_id,
+                error=str(exc)[:500],
+            )
+            state.phase = "interrupted"
+            self._event("resource_cap_reached", reason=reason[:500])
+            self._checkpoint(state)
+
+    async def _generate_test_drafts(self, state: AssessmentState) -> None:
+        from saads_grill_agent.test_artifacts import TestArtifactPolicyError
+
+        profile = state.profile
+        if profile is not None and not profile.test_frameworks:
+            inferred = self._store.infer_test_frameworks()
+            if inferred:
+                state.profile = profile.model_copy(update={"test_frameworks": inferred})
+                self._checkpoint(state)
+
+        for finding in state.findings:
+            try:
+                frameworks = (
+                    ", ".join(state.profile.test_frameworks)
+                    if state.profile and state.profile.test_frameworks
+                    else "pytest"
+                )
+                draft = await self._turn(
+                    state,
+                    "red_team",
+                    (
+                        f"Generate a non-executing regression test draft for "
+                        f"{finding.finding_id}. Use one of these frameworks: "
+                        f"{frameworks}. Return GeneratedTestDraft only."
+                    ),
+                    GeneratedTestDraft,
+                    enable_subagents=False,
+                    max_turns=DEBATE_MAX_TURNS,
+                )
+                if draft.finding_id != finding.finding_id:
+                    raise ValueError("test draft does not match its finding")
+                finding.generated_test_ids.append(draft.test_id)
+                if self._publish_test_draft is not None:
+                    self._publish_test_draft(draft, finding, state)
+            except (TeamTurnError, TestArtifactPolicyError, ValueError) as exc:
+                self._event(
+                    "test_draft_failed",
+                    finding_id=finding.finding_id,
+                    reason=str(exc)[:500],
+                )
             self._checkpoint(state)
 
     async def _turn(
@@ -382,6 +547,7 @@ class AssessmentOrchestrator:
         output_model: type[BaseModel],
         *,
         enable_subagents: bool = True,
+        max_turns: int | None = None,
     ) -> Any:
         if state.agent_calls_used >= state.config.max_agent_calls:
             raise _ResourceLimit("max_agent_calls")
@@ -392,6 +558,7 @@ class AssessmentOrchestrator:
             session_id=state.team_sessions.get(role),
             audits=TeamTurnAudits(),
             enable_subagents=enable_subagents,
+            max_turns=max_turns,
         )
         self._sync_issued_evidence(state)
         state.team_sessions[role] = result.session_id
@@ -470,10 +637,14 @@ class AssessmentOrchestrator:
             kept = [evidence_id for evidence_id in ids if evidence_id in state.evidence_ids]
             return kept or [issued[0]]
 
+        frameworks = list(profile.profile.test_frameworks)
+        if not frameworks:
+            frameworks = self._store.infer_test_frameworks()
         normalized_profile = profile.profile.model_copy(
             update={
                 "snapshot_id": state.snapshot_id,
                 "profile_evidence_ids": keep(profile.profile.profile_evidence_ids),
+                "test_frameworks": frameworks,
             }
         )
         surfaces = [

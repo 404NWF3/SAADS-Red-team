@@ -207,7 +207,7 @@ def test_judge_cannot_invoke_subagents(tmp_path: Path) -> None:
     # judge budget is tighter than team budget
     assert options.max_budget_usd == pytest.approx(JUDGE_BUDGET_USD)
     assert options.max_turns == JUDGE_MAX_TURNS
-    assert options.max_turns == 12
+    assert options.max_turns == 20
 
 
 def test_every_call_uses_output_format(tmp_path: Path) -> None:

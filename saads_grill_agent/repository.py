@@ -192,6 +192,34 @@ class RepositoryEvidenceStore:
             manifest_digest=manifest_digest,
         )
 
+    def infer_test_frameworks(self) -> list[str]:
+        """Detect likely unit-test frameworks from manifests and languages."""
+        inventory = self.inventory()
+        frameworks: list[str] = []
+        for relative in inventory.test_manifests:
+            name = Path(relative).name.lower()
+            if name == "pyproject.toml" and "pytest" not in frameworks:
+                frameworks.append("pytest")
+            if name == "package.json":
+                try:
+                    text = (self._root / relative).read_text(encoding="utf-8")
+                except OSError:
+                    text = ""
+                lowered = text.lower()
+                if "vitest" in lowered and "vitest" not in frameworks:
+                    frameworks.append("vitest")
+                if "jest" in lowered and "jest" not in frameworks:
+                    frameworks.append("jest")
+                if (
+                    "vitest" not in frameworks
+                    and "jest" not in frameworks
+                    and "javascript" in inventory.language_counts
+                ):
+                    frameworks.append("vitest")
+        if not frameworks and inventory.language_counts.get("python", 0) > 0:
+            frameworks.append("pytest")
+        return frameworks
+
     def search(self, query: str, regex: bool = False) -> SearchResult:
         if not query:
             raise RepositoryAccessError("search query cannot be empty")

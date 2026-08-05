@@ -38,9 +38,12 @@ Role = str  # "red_team" | "code_team" | "judge"
 # with subagents + MCP routinely exceeds that before structured output lands.
 TEAM_BUDGET_USD = 5.00
 JUDGE_BUDGET_USD = 2.00
-# Team turns (profiling/discovery/debate) need headroom for subagents + MCP tools.
+# Team turns need headroom for MCP tools. Raising the number alone does not
+# fix thrashing — discovery/debate also constrain prompts and fail soft.
 TEAM_MAX_TURNS = 40
-JUDGE_MAX_TURNS = 12
+DISCOVERY_MAX_TURNS = 80
+DEBATE_MAX_TURNS = 80
+JUDGE_MAX_TURNS = 20
 
 REPOSITORY_TOOLS = [
     "mcp__repository__list_repository",

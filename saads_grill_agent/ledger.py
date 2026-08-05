@@ -22,10 +22,14 @@ _ABSOLUTE_WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
 _MAX_EVENT_STRING_LENGTH = 4096
 _ALLOWED_EVENTS = frozenset(
     {
+        "debate_turn_failed",
+        "discovery_turn_failed",
         "forced_finalization_failed",
         "hypothesis_duplicate",
         "missing_cost_metadata",
         "resource_cap_reached",
+        "team_turn_failed",
+        "test_draft_failed",
     }
 )
 _JSONL_ARTIFACTS = (

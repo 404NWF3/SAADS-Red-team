@@ -17,3 +17,5 @@ artifacts/grill_runs/
 
 # Raw snapshots are reproducible from the source registry and manifest.
 data/raw/
+
+/targets

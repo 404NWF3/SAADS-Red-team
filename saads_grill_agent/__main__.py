@@ -263,16 +263,30 @@ def _publish_live_draft(
     finding: Finding,
     state: AssessmentState,
 ) -> None:
+    from saads_grill_agent.test_artifacts import TestArtifactPolicyError
+
     profile = state.profile
     if profile is None:
         return
-    write_test_artifact(
-        draft,
-        finding,
-        profile,
-        context.run_dir,
-        context.config.target_repo,
-    )
+    if not profile.test_frameworks:
+        inferred = context.store.infer_test_frameworks()
+        if inferred:
+            profile = profile.model_copy(update={"test_frameworks": inferred})
+            state.profile = profile
+    try:
+        write_test_artifact(
+            draft,
+            finding,
+            profile,
+            context.run_dir,
+            context.config.target_repo,
+        )
+    except TestArtifactPolicyError as exc:
+        context.ledger.append_event(
+            "test_draft_failed",
+            finding_id=finding.finding_id,
+            reason=str(exc)[:500],
+        )
 
 
 def publish_test_draft(

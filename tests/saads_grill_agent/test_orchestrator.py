@@ -25,10 +25,13 @@ from saads_grill_agent.orchestrator import (
 )
 from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.teams import (
+    DEBATE_MAX_TURNS,
+    DISCOVERY_MAX_TURNS,
     HypothesisBatch,
     RebuttalBatch,
     RedResponseBatch,
     TeamTurnAudits,
+    TeamTurnError,
     TeamTurnResult,
 )
 
@@ -72,10 +75,12 @@ class ScriptedTeamBackend:
         max_turns: int | None = None,
         enable_subagents: bool = True,
     ) -> TeamTurnResult:
-        del max_turns  # scripted backend ignores SDK turn limits
         self.role_order.append(role)
         self.session_ids.append(session_id)
         self.last_enable_subagents = enable_subagents
+        self.last_max_turns = max_turns
+        self.max_turns_by_role = getattr(self, "max_turns_by_role", [])
+        self.max_turns_by_role.append((role, max_turns))
         output = self.outputs.pop(0)
         return TeamTurnResult(
             output=output_model.model_validate(output),
@@ -324,6 +329,87 @@ def test_judge_rejection_creates_no_finding(tmp_path: Path) -> None:
 
     assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
     assert state.findings == []
+
+
+def test_discovery_max_turns_failure_counts_as_empty_sweep(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    ledger = default_ledger()
+
+    class FailingDiscoveryBackend(ScriptedTeamBackend):
+        async def run_turn(self, **kwargs: Any) -> TeamTurnResult:
+            if kwargs["role"] == "red_team":
+                assert kwargs.get("max_turns") == DISCOVERY_MAX_TURNS
+                raise TeamTurnError("team turn failed: error_max_turns")
+            return await super().run_turn(**kwargs)
+
+    backend = FailingDiscoveryBackend([profile_result(store.snapshot_id)])
+    orch = AssessmentOrchestrator(
+        backend=backend,
+        evidence_store=store,
+        ledger=ledger,
+    )
+    state = asyncio.run(orch.run(config(tmp_path)))
+
+    assert state.phase == "complete"
+    assert state.profile is not None
+    assert state.discovery.consecutive_empty_sweeps == 2
+    assert state.hypotheses == {}
+    assert state.findings == []
+    failed = [event for event in ledger.events if event["event"] == "discovery_turn_failed"]
+    assert len(failed) == 2
+    assert "error_max_turns" in failed[0]["reason"]
+
+
+def test_debate_max_turns_failure_interrupts_instead_of_crashing(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    ledger = default_ledger()
+
+    class FailOnDebateBackend(ScriptedTeamBackend):
+        async def run_turn(self, **kwargs: Any) -> TeamTurnResult:
+            prompt = kwargs.get("prompt", "")
+            if kwargs["role"] == "code_team" and "Falsify hypothesis" in prompt:
+                assert kwargs.get("max_turns") == DEBATE_MAX_TURNS
+                raise TeamTurnError("team turn failed: error_max_turns")
+            return await super().run_turn(**kwargs)
+
+    backend = FailOnDebateBackend(
+        [
+            profile_result(store.snapshot_id),
+            HypothesisBatch(hypotheses=[hypothesis()]),
+            # forced judge after debate failure
+            adjudication("reject"),
+            HypothesisBatch(hypotheses=[]),
+            HypothesisBatch(hypotheses=[]),
+        ]
+    )
+    orch = AssessmentOrchestrator(
+        backend=backend,
+        evidence_store=store,
+        ledger=ledger,
+    )
+    state = asyncio.run(orch.run(config(tmp_path)))
+
+    assert state.phase in {"complete", "interrupted"}
+    assert any(event["event"] == "debate_turn_failed" for event in ledger.events)
+    assert state.hypotheses  # checkpointed before debate
+
+
+def test_discovery_requests_elevated_max_turns(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    backend = ScriptedTeamBackend(
+        [
+            profile_result(store.snapshot_id),
+            HypothesisBatch(hypotheses=[]),
+            HypothesisBatch(hypotheses=[]),
+        ]
+    )
+    state = asyncio.run(orchestrator(backend, tmp_path).run(config(tmp_path)))
+    assert state.phase == "complete"
+    red_turns = [
+        turns for role, turns in backend.max_turns_by_role if role == "red_team"
+    ]
+    assert red_turns
+    assert all(turns == DISCOVERY_MAX_TURNS for turns in red_turns)
 
 
 def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
