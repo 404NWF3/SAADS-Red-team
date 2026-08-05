@@ -201,6 +201,8 @@ class TeamBackend:
         sdk_query: Callable[..., Any] = query,
         mcp_servers: dict[str, Any] | None = None,
         sdk_limits: SdkLimits | None = None,
+        graph_enabled: bool = False,
+        project_root: Any | None = None,
     ) -> None:
         from pathlib import Path
         self._target_repo = Path(target_repo).resolve()
@@ -208,6 +210,8 @@ class TeamBackend:
         self._sdk_query = sdk_query
         self._mcp_servers = dict(mcp_servers) if mcp_servers is not None else {}
         self._sdk = sdk_limits if sdk_limits is not None else SdkLimits()
+        self._graph_enabled = graph_enabled
+        self._project_root = Path(project_root).resolve() if project_root is not None else None
 
     def _role_budget(self, role: Role) -> float | None:
         return (

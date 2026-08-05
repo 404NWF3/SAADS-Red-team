@@ -77,6 +77,7 @@ class AssessmentOrchestrator:
         evidence_store: RepositoryEvidenceStore,
         ledger: AssessmentLedger,
         security_graph: Any | None = None,
+        graph_enabled: bool = False,
         publish_test_draft: Callable[
             [GeneratedTestDraft, Finding, AssessmentState], None
         ]
@@ -88,6 +89,7 @@ class AssessmentOrchestrator:
         self._store = evidence_store
         self._ledger = ledger
         self._security_graph = security_graph
+        self._graph_enabled = graph_enabled
         self._publish_test_draft = publish_test_draft
         self._code_audit = code_audit if code_audit is not None else []
         self._graph_audit = graph_audit if graph_audit is not None else []
