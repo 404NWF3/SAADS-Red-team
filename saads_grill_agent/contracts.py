@@ -64,6 +64,7 @@ class AssessmentConfig(ContractModel):
     max_agent_calls: int | None = Field(default=100, ge=5, le=10000)
     # ``None`` = no global assessment cost ceiling.
     max_cost_usd: float | None = Field(default=25.0, gt=0, le=500)
+    use_graphrag: bool = True
     sdk: SdkLimits = Field(default_factory=SdkLimits)
 
 
@@ -230,6 +231,8 @@ class AssessmentState(ContractModel):
     cost_usd_used: float = Field(default=0.0, ge=0)
     discovery: DiscoveryTracker = Field(default_factory=DiscoveryTracker)
     team_sessions: dict[str, str] = Field(default_factory=dict)
+    graph_enabled: bool = False
+    graph_skipped_reason: str | None = None
 
     def register_evidence(self, *evidence_ids: str) -> None:
         for evidence_id in evidence_ids:

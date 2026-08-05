@@ -19,9 +19,9 @@ from dotenv import load_dotenv
 
 from saads_attack_agent.security_graph import (
     GraphConfigurationError,
-    SecurityGraph,
     create_security_graph_server,
 )
+from saads_grill_agent.graph_runtime import resolve_graph_runtime
 from saads_grill_agent.contracts import (
     AssessmentConfig,
     AssessmentState,
@@ -129,6 +129,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Global assessment cost ceiling in USD.",
     )
+    start.add_argument(
+        "--no-graphrag",
+        action="store_true",
+        help="Disable optional GraphRAG knowledge grounding for this run.",
+    )
 
     resume = subparsers.add_parser(
         "resume",
@@ -156,6 +161,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Raise/replace the global cost ceiling for this resume (omit for unlimited only via --config).",
+    )
+    resume.add_argument(
+        "--no-graphrag",
+        action="store_true",
+        help="Disable optional GraphRAG knowledge grounding for this resume.",
     )
     return parser
 
@@ -256,26 +266,67 @@ def _exit_for_state(state: AssessmentState) -> int:
     return 1
 
 
+def _write_resolved_graph_fields(
+    run_dir: Path,
+    *,
+    use_graphrag: bool,
+    graph_enabled: bool,
+    graph_skipped_reason: str | None,
+) -> None:
+    path = run_dir / "red-team-config.resolved.yaml"
+    payload: dict[str, Any] = {}
+    if path.is_file():
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            payload = loaded
+    payload["use_graphrag"] = use_graphrag
+    payload["graph_enabled"] = graph_enabled
+    payload["graph_skipped_reason"] = graph_skipped_reason
+    path.write_text(
+        yaml.safe_dump(payload, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
 async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
     """Build live SDK/GraphRAG dependencies and run or resume an assessment."""
     load_dotenv(PROJECT_ROOT / ".env")
-    graph = SecurityGraph.load(PROJECT_ROOT)
+    runtime = resolve_graph_runtime(
+        root=PROJECT_ROOT,
+        use_graphrag=context.config.use_graphrag,
+    )
+    if context.command == "start":
+        _write_resolved_graph_fields(
+            context.run_dir,
+            use_graphrag=context.config.use_graphrag,
+            graph_enabled=runtime.enabled,
+            graph_skipped_reason=runtime.skipped_reason,
+        )
+    if not runtime.enabled and runtime.skipped_reason:
+        print(f"GraphRAG disabled: {runtime.skipped_reason}", file=sys.stderr)
     code_audit: list[Any] = []
     graph_audit: list[Any] = []
-    mcp_servers = {
+    mcp_servers: dict[str, Any] = {
         "repository": create_repository_server(context.store, code_audit),
-        "security_graph": create_security_graph_server(graph, graph_audit),
     }
+    if runtime.enabled and runtime.graph is not None:
+        mcp_servers["security_graph"] = create_security_graph_server(
+            runtime.graph, graph_audit
+        )
     backend = TeamBackend(
         target_repo=context.config.target_repo,
         mcp_servers=mcp_servers,
         sdk_limits=context.config.sdk,
+        graph_enabled=runtime.enabled,
+        project_root=PROJECT_ROOT,
     )
     orchestrator = AssessmentOrchestrator(
         backend=backend,
         evidence_store=context.store,
         ledger=context.ledger,
-        security_graph=graph,
+        security_graph=runtime.graph,
+        graph_enabled=runtime.enabled,
         publish_test_draft=lambda draft, finding, state: _publish_live_draft(
             context, draft, finding, state
         ),
@@ -285,8 +336,13 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
     if context.command == "start":
         state = await orchestrator.run(context.config)
     else:
-        state = await orchestrator.resume(context.ledger.state)
+        resumed = context.ledger.state
+        resumed.graph_enabled = runtime.enabled
+        resumed.graph_skipped_reason = runtime.skipped_reason
+        state = await orchestrator.resume(resumed)
 
+    state.graph_enabled = runtime.enabled
+    state.graph_skipped_reason = runtime.skipped_reason
     write_reports(state, context.run_dir)
     return state
 
@@ -359,6 +415,7 @@ def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
         output_root=args.output_root,
         max_rounds=args.max_rounds,
         max_cost_usd=args.max_cost_usd,
+        use_graphrag=False if args.no_graphrag else None,
         profile_overrides=profile_overrides,
     )
 
@@ -444,6 +501,8 @@ def _apply_resume_cap_overrides(
         updates["max_agent_calls"] = args.max_agent_calls
     if args.max_cost_usd is not None:
         updates["max_cost_usd"] = args.max_cost_usd
+    if getattr(args, "no_graphrag", False):
+        updates["use_graphrag"] = False
     if not updates:
         return config
     try:

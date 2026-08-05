@@ -120,11 +120,19 @@ def finalize_finding(finding: Finding) -> Finding:
     )
 
 
+_GRAPH_SKIP_LABELS: dict[str, str] = {
+    "disabled_by_config": "配置关闭（`use_graphrag: false` 或 `--no-graphrag`）",
+    "index_unavailable": "项目 GraphRAG 索引不可用（缺少 settings.yaml 或必需 parquet）",
+    "index_load_failed": "GraphRAG 索引加载失败，已降级为仅仓库证据",
+}
+
+
 def render_report(state: AssessmentState) -> str:
     """Render a deterministic user-facing Markdown report from assessment state."""
     finalized = [finalize_finding(finding) for finding in state.findings]
     sections = [
         _section_metadata(state),
+        _section_knowledge_grounding(state),
         _section_executive_summary(state, finalized),
         _section_architecture(state),
         _section_severity_counts(finalized),
@@ -175,6 +183,28 @@ def _section_metadata(state: AssessmentState) -> str:
                 f"- Agent 框架: {escape_text(profile.agent_framework)}",
             ]
         )
+    return "\n".join(lines)
+
+
+def _section_knowledge_grounding(state: AssessmentState) -> str:
+    lines = ["## 知识接地"]
+    if state.graph_enabled:
+        lines.append(
+            "- GraphRAG：已启用（红队 / 裁判可软引用项目安全知识图谱与 "
+            "`ground-red-team-evidence` Skill）"
+        )
+    elif state.graph_skipped_reason:
+        reason = _GRAPH_SKIP_LABELS.get(
+            state.graph_skipped_reason,
+            state.graph_skipped_reason,
+        )
+        lines.append(f"- GraphRAG：未启用 — {escape_text(reason)}")
+    else:
+        lines.append("- GraphRAG：未启用")
+    lines.append(
+        f"- 操作员配置 `use_graphrag`："
+        f"{'是' if state.config.use_graphrag else '否'}"
+    )
     return "\n".join(lines)
 
 

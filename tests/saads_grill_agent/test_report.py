@@ -157,11 +157,34 @@ def test_report_separates_confirmed_rejected_and_duplicate_items() -> None:
     assert "资源限制" not in report
 
 
+def test_report_knowledge_grounding_when_graph_disabled() -> None:
+    state = state_with_all_terminal_states()
+    state.graph_skipped_reason = "index_unavailable"
+    report = render_report(state)
+    section = _section_body(report, "## 知识接地")
+
+    assert "GraphRAG：未启用" in section
+    assert "索引不可用" in section
+    assert "use_graphrag" in section
+
+
+def test_report_knowledge_grounding_when_graph_enabled() -> None:
+    state = state_with_all_terminal_states()
+    state.graph_enabled = True
+    state.graph_skipped_reason = None
+    report = render_report(state)
+    section = _section_body(report, "## 知识接地")
+
+    assert "GraphRAG：已启用" in section
+    assert "ground-red-team-evidence" in section
+
+
 def test_report_includes_required_sections_only() -> None:
     report = render_report(state_with_all_terminal_states())
 
     for heading in (
         "## 运行元数据与目标快照",
+        "## 知识接地",
         "## 执行摘要",
         "## 仓库架构与信任边界",
         "## 严重级别统计",

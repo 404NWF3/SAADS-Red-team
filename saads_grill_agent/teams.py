@@ -56,7 +56,9 @@ GRAPH_TOOL = "mcp__security_graph__query_security_graph"
 # Programmatic subagents (verbatim from the plan).
 RED_GRAPH_PROMPT = (
     "Ground one LLM attack mechanism and its known controls in the security "
-    "graph. Return only structured evidence-backed findings."
+    "graph. Follow the ground-red-team-evidence Skill purpose norms "
+    "(threat_modeling, hypothesis_grounding, adjudication_grounding, "
+    "test_grounding). Return only structured evidence-backed findings."
 )
 ATTACK_PATH_PROMPT = (
     "Trace one proposed source-to-sink attack path through repository evidence "
@@ -157,19 +159,35 @@ class TeamTurnResult:
     usage: Any
 
 
-def _role_tools(role: Role) -> list[str]:
+def _role_tools(role: Role, *, graph_enabled: bool) -> list[str]:
     if role == "red_team":
-        return ["Agent"] + REPOSITORY_TOOLS + [GRAPH_TOOL]
+        tools = ["Agent"] + list(REPOSITORY_TOOLS)
+        if graph_enabled:
+            tools.extend(["Skill", GRAPH_TOOL])
+        return tools
     if role == "code_team":
-        return ["Agent"] + REPOSITORY_TOOLS
+        return ["Agent"] + list(REPOSITORY_TOOLS)
     if role == "judge":
-        return REPOSITORY_TOOLS + [GRAPH_TOOL]
+        tools = list(REPOSITORY_TOOLS)
+        if graph_enabled:
+            tools.extend(["Skill", GRAPH_TOOL])
+        return tools
     raise TeamTurnError(f"unknown team role: {role}")
 
 
-def _role_agents(role: Role) -> dict[str, AgentDefinition]:
+def _role_agents(role: Role, *, graph_enabled: bool) -> dict[str, AgentDefinition]:
     if role == "red_team":
-        return dict(RED_SUBAGENTS)
+        agents = dict(RED_SUBAGENTS)
+        if not graph_enabled:
+            agents.pop("graph-grounder", None)
+            strategist = agents["test-strategist"]
+            agents["test-strategist"] = AgentDefinition(
+                description=strategist.description,
+                prompt=strategist.prompt,
+                tools=list(REPOSITORY_TOOLS),
+                permissionMode=strategist.permissionMode,
+            )
+        return agents
     if role == "code_team":
         return dict(CODE_SUBAGENTS)
     return {}
@@ -201,6 +219,8 @@ class TeamBackend:
         sdk_query: Callable[..., Any] = query,
         mcp_servers: dict[str, Any] | None = None,
         sdk_limits: SdkLimits | None = None,
+        graph_enabled: bool = False,
+        project_root: Any | None = None,
     ) -> None:
         from pathlib import Path
         self._target_repo = Path(target_repo).resolve()
@@ -208,6 +228,8 @@ class TeamBackend:
         self._sdk_query = sdk_query
         self._mcp_servers = dict(mcp_servers) if mcp_servers is not None else {}
         self._sdk = sdk_limits if sdk_limits is not None else SdkLimits()
+        self._graph_enabled = graph_enabled
+        self._project_root = Path(project_root).resolve() if project_root is not None else None
 
     def _role_budget(self, role: Role) -> float | None:
         return (
@@ -310,15 +332,29 @@ class TeamBackend:
             else max_turns
         )
         use_subagents = enable_subagents and role in {"red_team", "code_team"}
-        allowed = _role_tools(role)
+        graph_role = self._graph_enabled and role in {"red_team", "judge"}
+        allowed = _role_tools(role, graph_enabled=self._graph_enabled)
         if not use_subagents:
             allowed = [tool for tool in allowed if tool != "Agent"]
+        cwd = (
+            str(self._project_root)
+            if self._project_root is not None
+            else str(self._target_repo)
+        )
+        tools: list[str] = []
+        if use_subagents:
+            tools.append("Agent")
+        if graph_role:
+            tools.append("Skill")
         return ClaudeAgentOptions(
-            cwd=str(self._target_repo),
-            setting_sources=[],
-            tools=["Agent"] if use_subagents else [],
+            cwd=cwd,
+            setting_sources=["project"] if graph_role else [],
+            skills=["ground-red-team-evidence"] if graph_role else [],
+            tools=tools,
             allowed_tools=allowed,
-            agents=_role_agents(role) if use_subagents else {},
+            agents=_role_agents(role, graph_enabled=self._graph_enabled)
+            if use_subagents
+            else {},
             mcp_servers=self._mcp_servers,
             strict_mcp_config=True,
             permission_mode="dontAsk",

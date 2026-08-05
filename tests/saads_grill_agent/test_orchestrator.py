@@ -63,6 +63,7 @@ class ScriptedTeamBackend:
         self.costs = costs or [0.01] * len(outputs)
         self.role_order: list[str] = []
         self.session_ids: list[str | None] = []
+        self.prompts: list[tuple[str, str]] = []
 
     async def run_turn(
         self,
@@ -77,6 +78,7 @@ class ScriptedTeamBackend:
     ) -> TeamTurnResult:
         self.role_order.append(role)
         self.session_ids.append(session_id)
+        self.prompts.append((role, prompt))
         self.last_enable_subagents = enable_subagents
         self.last_max_turns = max_turns
         self.max_turns_by_role = getattr(self, "max_turns_by_role", [])
@@ -223,11 +225,18 @@ def default_ledger() -> FakeLedger:
     return ledger
 
 
-def orchestrator(backend: ScriptedTeamBackend, repo: Path, ledger: FakeLedger | None = None) -> AssessmentOrchestrator:
+def orchestrator(
+    backend: ScriptedTeamBackend,
+    repo: Path,
+    ledger: FakeLedger | None = None,
+    *,
+    graph_enabled: bool = False,
+) -> AssessmentOrchestrator:
     return AssessmentOrchestrator(
         backend=backend,
         evidence_store=RepositoryEvidenceStore.open(repo),
         ledger=ledger or default_ledger(),
+        graph_enabled=graph_enabled,
     )
 
 
@@ -749,3 +758,52 @@ def test_resume_rejects_repository_snapshot_mismatch(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="snapshot"):
         asyncio.run(orchestrator(ScriptedTeamBackend([]), tmp_path).resume(state))
+
+
+def _minimal_run_outputs(snapshot_id: str) -> list[Any]:
+    hyp = hypothesis()
+    finding_id = f"finding-{hyp.hypothesis_id}"
+    return [
+        profile_result(snapshot_id),
+        HypothesisBatch(hypotheses=[hyp]),
+        rebuttal(hyp.hypothesis_id),
+        red_response(hyp.hypothesis_id),
+        adjudication(hypothesis_id=hyp.hypothesis_id),
+        HypothesisBatch(hypotheses=[]),
+        HypothesisBatch(hypotheses=[]),
+        generated_test_draft(finding_id),
+    ]
+
+
+def test_prompts_mention_skill_when_graph_enabled(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    backend = ScriptedTeamBackend(_minimal_run_outputs(store.snapshot_id))
+
+    asyncio.run(orchestrator(backend, tmp_path, graph_enabled=True).run(config(tmp_path)))
+
+    discovery = next(prompt for role, prompt in backend.prompts if role == "red_team" and "Propose at most 3" in prompt)
+    debate = next(prompt for role, prompt in backend.prompts if role == "red_team" and "Respond to the rebuttal" in prompt)
+    judge = next(prompt for role, prompt in backend.prompts if role == "judge")
+
+    for prompt in (discovery, debate, judge):
+        assert "$ground-red-team-evidence" in prompt
+        assert "Grilling:" in prompt
+
+
+def test_prompts_omit_graphrag_when_graph_disabled(tmp_path: Path) -> None:
+    store = RepositoryEvidenceStore.open(tmp_path)
+    backend = ScriptedTeamBackend(_minimal_run_outputs(store.snapshot_id))
+
+    asyncio.run(orchestrator(backend, tmp_path, graph_enabled=False).run(config(tmp_path)))
+
+    for _role, prompt in backend.prompts:
+        assert "$ground-red-team-evidence" not in prompt
+        assert "GraphRAG" not in prompt
+
+    discovery = next(prompt for role, prompt in backend.prompts if role == "red_team" and "Propose at most 3" in prompt)
+    debate = next(prompt for role, prompt in backend.prompts if role == "red_team" and "Respond to the rebuttal" in prompt)
+    judge = next(prompt for role, prompt in backend.prompts if role == "judge")
+    rebuttal_prompt = next(prompt for role, prompt in backend.prompts if role == "code_team" and "Falsify hypothesis" in prompt)
+
+    for prompt in (discovery, debate, judge, rebuttal_prompt):
+        assert "Grilling:" in prompt

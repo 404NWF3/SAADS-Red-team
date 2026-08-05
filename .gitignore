@@ -19,3 +19,7 @@ artifacts/grill_runs/
 data/raw/
 
 /targets
+
+# Local git worktrees
+.worktrees/
+

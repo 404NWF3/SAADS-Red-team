@@ -5,8 +5,16 @@ from pathlib import Path
 
 import pytest
 
-from saads_grill_agent.__main__ import AssessmentRunContext, main
-from saads_grill_agent.contracts import AssessmentState
+from saads_grill_agent.__main__ import (
+    AssessmentRunContext,
+    _prepare_start,
+    build_parser,
+    main,
+    run_live_assessment,
+)
+from saads_grill_agent.contracts import AssessmentConfig, AssessmentState
+from saads_grill_agent.ledger import AssessmentLedger
+from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.report import write_reports
 
 
@@ -83,6 +91,99 @@ def test_start_prints_run_and_report_paths(
     output = capsys.readouterr().out
     assert "run_state.json" in output
     assert "report.md" in output
+
+
+def test_start_no_graphrag_flag_merges_false(tmp_path: Path) -> None:
+    config_path = tmp_path / "red-team-config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                f"target_repo: {fixture_repo().as_posix()}",
+                "authorization_ref: from-config",
+                f"output_root: {tmp_path.as_posix()}",
+                "use_graphrag: true",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    parser = build_parser()
+    args = parser.parse_args(["start", "--config", str(config_path), "--no-graphrag"])
+    context = _prepare_start(args)
+    assert context.config.use_graphrag is False
+
+
+def test_run_live_assessment_skips_load_when_index_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import asyncio
+
+    load_calls: list[Path] = []
+
+    def _fail_load(root: Path) -> None:
+        load_calls.append(root)
+        raise AssertionError("SecurityGraph.load should not be called")
+
+    monkeypatch.setattr(
+        "saads_grill_agent.graph_runtime.SecurityGraph.load",
+        _fail_load,
+    )
+
+    repo = fixture_repo()
+    store = RepositoryEvidenceStore.open(repo)
+    config = AssessmentConfig(
+        target_repo=repo,
+        goal="test",
+        use_graphrag=True,
+    )
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    ledger = AssessmentLedger.create(
+        run_dir,
+        AssessmentState(config=config, snapshot_id=store.snapshot_id),
+    )
+    context = AssessmentRunContext(
+        command="start",
+        run_dir=run_dir,
+        config=config,
+        store=store,
+        ledger=ledger,
+        authorization_ref="fixture-test",
+    )
+
+    orchestrator_ran = False
+
+    class FakeOrchestrator:
+        def __init__(self, **kwargs: object) -> None:
+            assert kwargs.get("graph_enabled") is False
+            assert kwargs.get("security_graph") is None
+
+        async def run(self, _config: object) -> AssessmentState:
+            nonlocal orchestrator_ran
+            orchestrator_ran = True
+            return AssessmentState(
+                config=config,
+                snapshot_id=store.snapshot_id,
+                phase="complete",
+            )
+
+    monkeypatch.setattr(
+        "saads_grill_agent.__main__.AssessmentOrchestrator",
+        FakeOrchestrator,
+    )
+    monkeypatch.setattr("saads_grill_agent.__main__.load_dotenv", lambda _path: None)
+    monkeypatch.setattr(
+        "saads_grill_agent.__main__.create_repository_server",
+        lambda _store, _audit: object(),
+    )
+    monkeypatch.setattr("saads_grill_agent.__main__.TeamBackend", lambda **_kwargs: object())
+    monkeypatch.setattr("saads_grill_agent.__main__.write_reports", lambda *_args: None)
+
+    state = asyncio.run(run_live_assessment(context))
+    assert not load_calls
+    assert orchestrator_ran
+    assert state.phase == "complete"
 
 
 def test_start_requires_explicit_local_repository(

@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 
 from saads_grill_agent.runtime_config import (
+    RedTeamConfig,
+    default_red_team_config,
     load_red_team_config,
     merge_cli_over_config,
 )
@@ -72,6 +74,32 @@ def test_to_assessment_config_carries_sdk(tmp_path: Path) -> None:
     assessment = cfg.to_assessment_config(tmp_path)
     assert assessment.sdk.team_budget_usd == 7.5
     assert assessment.sdk.debate_max_turns == 30
+
+
+def test_use_graphrag_defaults_true() -> None:
+    assert RedTeamConfig().use_graphrag is True
+    assert default_red_team_config().to_assessment_config(Path("t")).use_graphrag is True
+
+
+def test_yaml_can_disable_use_graphrag(tmp_path: Path) -> None:
+    path = tmp_path / "c.yaml"
+    path.write_text("use_graphrag: false\n", encoding="utf-8")
+    assert load_red_team_config(path).use_graphrag is False
+
+
+def test_merge_cli_no_graphrag_forces_false() -> None:
+    cfg = RedTeamConfig(use_graphrag=True)
+    merged = merge_cli_over_config(
+        cfg,
+        target_repo=None,
+        authorization_ref=None,
+        goal=None,
+        output_root=None,
+        max_rounds=None,
+        max_cost_usd=None,
+        use_graphrag=False,
+    )
+    assert merged.use_graphrag is False
 
 
 def test_invalid_yaml_raises(tmp_path: Path) -> None:

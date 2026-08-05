@@ -135,7 +135,6 @@ def test_red_team_gets_only_agent_and_read_only_mcp_tools(tmp_path: Path) -> Non
         "mcp__repository__list_repository",
         "mcp__repository__search_repository",
         "mcp__repository__read_repository_snippet",
-        "mcp__security_graph__query_security_graph",
     }
     assert "Bash" not in options.tools
     assert result.session_id == "session-from-result"
@@ -201,9 +200,9 @@ def test_judge_cannot_invoke_subagents(tmp_path: Path) -> None:
     options = captured.calls[0].options
     assert "Agent" not in options.allowed_tools
     assert options.agents == {} or not options.agents
-    # judge still has both evidence families
+    # judge still has repository evidence tools only when graph is disabled
     assert "mcp__repository__read_repository_snippet" in options.allowed_tools
-    assert "mcp__security_graph__query_security_graph" in options.allowed_tools
+    assert "mcp__security_graph__query_security_graph" not in options.allowed_tools
     # judge budget is tighter than team budget
     assert options.max_budget_usd == pytest.approx(JUDGE_BUDGET_USD)
     assert options.max_turns == JUDGE_MAX_TURNS
@@ -223,8 +222,130 @@ def test_every_call_uses_output_format(tmp_path: Path) -> None:
     options = captured.calls[0].options
     assert options.output_format["type"] == "json_schema"
     assert "schema" in options.output_format
-    # cwd pinned to resolved target repo, and no setting sources (isolation)
+    # cwd falls back to target_repo when project_root is unset
     assert options.cwd == str(tmp_path.resolve())
+    assert options.setting_sources == []
+
+
+def _build_options(
+    backend: TeamBackend,
+    *,
+    role: str = "red_team",
+    enable_subagents: bool = True,
+) -> Any:
+    return backend._build_options(
+        role,
+        HypothesisBatch,
+        session_id=None,
+        audits=empty_audits(),
+        enable_subagents=enable_subagents,
+    )
+
+
+def test_red_tools_include_graph_when_enabled(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    backend = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=True,
+    )
+    options = _build_options(backend, role="red_team")
+    assert GRAPH_TOOL in options.allowed_tools
+    assert "Skill" in options.allowed_tools
+    assert options.setting_sources == ["project"]
+    assert options.skills == ["ground-red-team-evidence"]
+    assert "Agent" in options.tools
+    assert "Skill" in options.tools
+
+
+def test_red_tools_exclude_graph_when_disabled(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    backend = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=False,
+    )
+    options = _build_options(backend, role="red_team")
+    assert GRAPH_TOOL not in options.allowed_tools
+    assert "Skill" not in options.allowed_tools
+    assert options.setting_sources == []
+    assert options.skills == []
+
+
+def test_cwd_is_project_root(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    backend = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=False,
+    )
+    options = _build_options(backend, role="judge", enable_subagents=False)
+    assert options.cwd == str(project_root.resolve())
+
+
+def test_skills_loaded_only_when_graph_enabled(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    enabled = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=True,
+    )
+    disabled = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=False,
+    )
+    enabled_opts = _build_options(enabled, role="judge", enable_subagents=False)
+    disabled_opts = _build_options(disabled, role="judge", enable_subagents=False)
+    assert enabled_opts.skills == ["ground-red-team-evidence"]
+    assert disabled_opts.skills == []
+    assert "Skill" in enabled_opts.allowed_tools
+    assert "Skill" not in disabled_opts.allowed_tools
+
+
+def test_graph_grounder_absent_when_disabled(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    backend = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=False,
+    )
+    options = _build_options(backend, role="red_team")
+    assert "graph-grounder" not in options.agents
+    strategist = options.agents["test-strategist"]
+    assert GRAPH_TOOL not in strategist.tools
+    assert strategist.tools == list(REPOSITORY_TOOLS)
+
+
+def test_code_team_never_gets_graph_or_skill(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    target_repo = tmp_path / "target"
+    target_repo.mkdir()
+    backend = TeamBackend(
+        target_repo=target_repo,
+        project_root=project_root,
+        graph_enabled=True,
+    )
+    options = _build_options(backend, role="code_team")
+    assert GRAPH_TOOL not in options.allowed_tools
+    assert "Skill" not in options.allowed_tools
+    assert options.skills == []
     assert options.setting_sources == []
 
 
