@@ -1,0 +1,38 @@
+# Red-team assessment: targets/SUFE-SAADS
+# No SDK turn caps and no USD budget caps (null = unlimited).
+#
+# Run:
+#   uv run python -m saads_grill_agent start --config red-team-config.sufe-saads.yaml
+
+target_repo: targets/SUFE-SAADS
+authorization_ref: "local-authorized-review-sufe-saads"
+goal: "审查 SUFE-SAADS 智能体应用的代码级安全漏洞（提示注入、工具调用、RAG、鉴权与敏感信息）"
+output_root: artifacts/grill_runs
+
+supplied_model_provider: null
+supplied_model_name: null
+supplied_agent_framework: null
+supplied_frontend_roots: []
+supplied_backend_roots: []
+scope_includes: []
+scope_excludes: []
+
+max_rounds_per_hypothesis: 4
+max_threat_surfaces: 20
+max_hypotheses: 40
+# null = no orchestrator team-turn scheduling ceiling
+max_agent_calls: null
+# null = no global assessment cost ceiling
+max_cost_usd: null
+
+sdk:
+  team_max_turns: null
+  discovery_max_turns: null
+  debate_max_turns: null
+  judge_max_turns: null
+  # null = no per-turn Claude Agent SDK max_budget_usd
+  team_budget_usd: null
+  judge_budget_usd: null
+  enable_subagents_profiling: false
+  enable_subagents_discovery: false
+  enable_subagents_debate: false

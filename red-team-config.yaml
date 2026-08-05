@@ -1,0 +1,49 @@
+# SAADS grill / red-team assessment config
+# Usage:
+#   uv run python -m saads_grill_agent start --config red-team-config.yaml
+#   # or keep target/auth on the CLI and only put budgets/scope here:
+#   uv run python -m saads_grill_agent start TARGET_REPO \
+#     --authorization-ref "ticket-123" --config red-team-config.yaml
+#
+# Precedence: CLI flags > this file > built-in defaults.
+# Omit a key (or leave null where allowed) to keep the default.
+
+# --- run identity -----------------------------------------------------------
+# Local directory only (never a git URL). Can also be passed as the start positional.
+target_repo: null
+
+# Required unless provided via --authorization-ref
+authorization_ref: null
+
+goal: "审查该 LLM 应用的代码级安全漏洞"
+output_root: artifacts/grill_runs
+
+# --- optional profile hints (override auto-detection when known) ------------
+supplied_model_provider: null
+supplied_model_name: null
+supplied_agent_framework: null
+supplied_frontend_roots: []
+supplied_backend_roots: []
+scope_includes: []
+scope_excludes: []
+
+# --- assessment resource caps -----------------------------------------------
+max_rounds_per_hypothesis: null
+max_threat_surfaces: null
+max_hypotheses: null
+max_agent_calls: null
+max_cost_usd: null
+
+# --- Claude Agent SDK limits ------------------------------------------------
+# max_turns: null = unlimited (recommended). Integers cap tool-use round trips
+# (SDK meaning of max_turns), not chat verbosity.
+sdk:
+  team_max_turns: null
+  discovery_max_turns: null
+  debate_max_turns: null
+  judge_max_turns: null
+  team_budget_usd: 5.0
+  judge_budget_usd: 2.0
+  enable_subagents_profiling: false
+  enable_subagents_discovery: false
+  enable_subagents_debate: false

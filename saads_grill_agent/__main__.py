@@ -36,6 +36,10 @@ from saads_grill_agent.repository import (
     RepositoryEvidenceStore,
     create_repository_server,
 )
+from saads_grill_agent.runtime_config import (
+    load_red_team_config,
+    merge_cli_over_config,
+)
 from saads_grill_agent.teams import TeamBackend, TeamTurnError
 from saads_grill_agent.test_artifacts import write_test_artifact
 
@@ -78,11 +82,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     start.add_argument(
         "target_repo",
-        help="Path to an authorized local repository directory (not a URL).",
+        nargs="?",
+        default=None,
+        help=(
+            "Path to an authorized local repository directory (not a URL). "
+            "Optional when set in --config."
+        ),
+    )
+    start.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="YAML file with human-tunable red-team parameters (see red-team-config.yaml).",
     )
     start.add_argument(
         "--authorization-ref",
-        default="",
+        default=None,
         help="Nonempty reference recording explicit review authorization.",
     )
     start.add_argument(
@@ -99,20 +114,20 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument(
         "--output-root",
         type=Path,
-        default=Path("artifacts/grill_runs"),
+        default=None,
         help="Directory that receives unique assessment run directories.",
     )
     start.add_argument(
         "--max-rounds",
         type=int,
-        default=4,
-        help="Maximum debate rounds per hypothesis (default: 4).",
+        default=None,
+        help="Maximum debate rounds per hypothesis.",
     )
     start.add_argument(
         "--max-cost-usd",
         type=float,
-        default=25.0,
-        help="Global assessment cost ceiling in USD (default: 25).",
+        default=None,
+        help="Global assessment cost ceiling in USD.",
     )
 
     resume = subparsers.add_parser(
@@ -123,6 +138,24 @@ def build_parser() -> argparse.ArgumentParser:
         "run_dir",
         type=Path,
         help="Existing assessment run directory containing run_state.json.",
+    )
+    resume.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Optional YAML whose resource caps override the checkpointed config.",
+    )
+    resume.add_argument(
+        "--max-agent-calls",
+        type=int,
+        default=None,
+        help="Raise/replace the orchestrator team-turn ceiling for this resume.",
+    )
+    resume.add_argument(
+        "--max-cost-usd",
+        type=float,
+        default=None,
+        help="Raise/replace the global cost ceiling for this resume (omit for unlimited only via --config).",
     )
     return parser
 
@@ -236,6 +269,7 @@ async def run_live_assessment(context: AssessmentRunContext) -> AssessmentState:
     backend = TeamBackend(
         target_repo=context.config.target_repo,
         mcp_servers=mcp_servers,
+        sdk_limits=context.config.sdk,
     )
     orchestrator = AssessmentOrchestrator(
         backend=backend,
@@ -307,28 +341,47 @@ def publish_test_draft(
 
 
 def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
-    # Reject remotes before other start checks so usage tests exercise URL rejection.
-    if _is_remote_target(args.target_repo):
+    try:
+        file_config = load_red_team_config(args.config)
+    except ValueError as exc:
+        raise CliUsageError(str(exc)) from exc
+
+    try:
+        profile_overrides = _load_profile_overrides(args.profile)
+    except CliUsageError:
+        raise
+
+    merged = merge_cli_over_config(
+        file_config,
+        target_repo=args.target_repo,
+        authorization_ref=args.authorization_ref,
+        goal=args.goal,
+        output_root=args.output_root,
+        max_rounds=args.max_rounds,
+        max_cost_usd=args.max_cost_usd,
+        profile_overrides=profile_overrides,
+    )
+
+    raw_target = (merged.target_repo or "").strip()
+    if not raw_target:
+        raise CliUsageError(
+            "target_repo is required via positional argument or --config"
+        )
+    # Reject remotes before Path resolution (Windows Path mangles URL schemes).
+    if _is_remote_target(raw_target):
         raise CliUsageError(
             "target must be an authorized local directory, not a URL or remote"
         )
 
-    authorization_ref = (args.authorization_ref or "").strip()
+    authorization_ref = (merged.authorization_ref or "").strip()
     if not authorization_ref:
-        raise CliUsageError("--authorization-ref is required and must be nonempty")
+        raise CliUsageError(
+            "authorization_ref is required via --authorization-ref or --config"
+        )
 
-    target_repo = _validate_local_target(args.target_repo)
-    overrides = _load_profile_overrides(args.profile)
-    config_kwargs: dict[str, Any] = {
-        "target_repo": target_repo,
-        "max_rounds_per_hypothesis": args.max_rounds,
-        "max_cost_usd": args.max_cost_usd,
-        **overrides,
-    }
-    if args.goal is not None:
-        config_kwargs["goal"] = args.goal
+    target_repo = _validate_local_target(raw_target)
     try:
-        config = AssessmentConfig.model_validate(config_kwargs)
+        config = merged.to_assessment_config(target_repo)
     except Exception as exc:  # pydantic ValidationError
         raise CliUsageError(str(exc)) from exc
 
@@ -337,7 +390,7 @@ def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
     except RepositoryAccessError as exc:
         raise CliUsageError(str(exc)) from exc
 
-    run_dir = _unique_run_dir(Path(args.output_root))
+    run_dir = _unique_run_dir(Path(merged.output_root))
     initial = AssessmentState(config=config, snapshot_id=store.snapshot_id)
     ledger = AssessmentLedger.create(run_dir, initial)
     _write_run_metadata(
@@ -345,6 +398,20 @@ def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
         authorization_ref=authorization_ref,
         target_repo=target_repo,
         snapshot_id=store.snapshot_id,
+    )
+    # Persist the resolved config snapshot for operators.
+    (run_dir / "red-team-config.resolved.yaml").write_text(
+        yaml.safe_dump(
+            {
+                **merged.model_dump(mode="json"),
+                "target_repo": str(target_repo),
+                "authorization_ref": authorization_ref,
+            },
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+        newline="\n",
     )
     return AssessmentRunContext(
         command="start",
@@ -354,6 +421,35 @@ def _prepare_start(args: argparse.Namespace) -> AssessmentRunContext:
         ledger=ledger,
         authorization_ref=authorization_ref,
     )
+
+
+def _apply_resume_cap_overrides(
+    config: AssessmentConfig,
+    args: argparse.Namespace,
+) -> AssessmentConfig:
+    """Raise resource ceilings when resuming a capped / interrupted run."""
+    updates: dict[str, Any] = {}
+    if getattr(args, "config", None) is not None:
+        try:
+            file_config = load_red_team_config(args.config)
+        except ValueError as exc:
+            raise CliUsageError(str(exc)) from exc
+        updates["max_agent_calls"] = file_config.max_agent_calls
+        updates["max_cost_usd"] = file_config.max_cost_usd
+        updates["max_rounds_per_hypothesis"] = file_config.max_rounds_per_hypothesis
+        updates["max_hypotheses"] = file_config.max_hypotheses
+        updates["max_threat_surfaces"] = file_config.max_threat_surfaces
+        updates["sdk"] = file_config.sdk
+    if args.max_agent_calls is not None:
+        updates["max_agent_calls"] = args.max_agent_calls
+    if args.max_cost_usd is not None:
+        updates["max_cost_usd"] = args.max_cost_usd
+    if not updates:
+        return config
+    try:
+        return config.model_copy(update=updates)
+    except Exception as exc:  # pydantic ValidationError
+        raise CliUsageError(str(exc)) from exc
 
 
 def _prepare_resume(args: argparse.Namespace) -> AssessmentRunContext:
@@ -380,6 +476,7 @@ def _prepare_resume(args: argparse.Namespace) -> AssessmentRunContext:
 
     # Absolute target paths are redacted from ledger checkpoints; restore exact path.
     config = ledger.state.config.model_copy(update={"target_repo": target_repo})
+    config = _apply_resume_cap_overrides(config, args)
     ledger.state = ledger.state.model_copy(update={"config": config})
 
     return AssessmentRunContext(

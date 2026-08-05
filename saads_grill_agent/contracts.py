@@ -32,6 +32,21 @@ TestLanguage: TypeAlias = Literal["python", "typescript", "javascript"]
 TestFramework: TypeAlias = Literal["pytest", "vitest", "jest"]
 
 
+class SdkLimits(ContractModel):
+    """Claude Agent SDK turn/budget knobs. ``None`` max_turns means unlimited."""
+
+    team_max_turns: int | None = Field(default=None, ge=1)
+    discovery_max_turns: int | None = Field(default=None, ge=1)
+    debate_max_turns: int | None = Field(default=None, ge=1)
+    judge_max_turns: int | None = Field(default=None, ge=1)
+    # ``None`` = do not pass a per-turn SDK budget cap.
+    team_budget_usd: float | None = Field(default=5.0, gt=0, le=500)
+    judge_budget_usd: float | None = Field(default=2.0, gt=0, le=500)
+    enable_subagents_profiling: bool = False
+    enable_subagents_discovery: bool = False
+    enable_subagents_debate: bool = False
+
+
 class AssessmentConfig(ContractModel):
     target_repo: Path
     goal: str = "审查该 LLM 应用的代码级安全漏洞"
@@ -42,11 +57,14 @@ class AssessmentConfig(ContractModel):
     supplied_backend_roots: list[str] = Field(default_factory=list)
     scope_includes: list[str] = Field(default_factory=list)
     scope_excludes: list[str] = Field(default_factory=list)
-    max_rounds_per_hypothesis: int = Field(default=4, ge=1, le=6)
-    max_threat_surfaces: int = Field(default=20, ge=1, le=50)
-    max_hypotheses: int = Field(default=40, ge=1, le=100)
-    max_agent_calls: int = Field(default=100, ge=5, le=250)
-    max_cost_usd: float = Field(default=25.0, gt=0, le=100)
+    max_rounds_per_hypothesis: int = Field(default=4, ge=1, le=12)
+    max_threat_surfaces: int = Field(default=20, ge=1, le=100)
+    max_hypotheses: int = Field(default=40, ge=1, le=200)
+    # ``None`` = no orchestrator team-turn scheduling ceiling.
+    max_agent_calls: int | None = Field(default=100, ge=5, le=10000)
+    # ``None`` = no global assessment cost ceiling.
+    max_cost_usd: float | None = Field(default=25.0, gt=0, le=500)
+    sdk: SdkLimits = Field(default_factory=SdkLimits)
 
 
 class RepositoryProfile(ContractModel):

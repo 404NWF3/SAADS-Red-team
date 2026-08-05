@@ -27,6 +27,7 @@ from saads_grill_agent.contracts import (
     Adjudication,
     DefenderRebuttal,
     RedResponse,
+    SdkLimits,
     VulnerabilityHypothesis,
 )
 
@@ -34,16 +35,16 @@ OutputModel = TypeVar("OutputModel", bound=BaseModel)
 
 Role = str  # "red_team" | "code_team" | "judge"
 
-# Per-turn SDK budgets. Plan defaults were 1.50/0.75; live DeepSeek profiling
-# with subagents + MCP routinely exceeds that before structured output lands.
-TEAM_BUDGET_USD = 5.00
-JUDGE_BUDGET_USD = 2.00
-# Team turns need headroom for MCP tools. Raising the number alone does not
-# fix thrashing — discovery/debate also constrain prompts and fail soft.
-TEAM_MAX_TURNS = 40
-DISCOVERY_MAX_TURNS = 80
-DEBATE_MAX_TURNS = 80
-JUDGE_MAX_TURNS = 20
+# Module aliases of SdkLimits defaults (max_turns None = unlimited).
+_DEFAULT_SDK = SdkLimits()
+TEAM_BUDGET_USD = _DEFAULT_SDK.team_budget_usd
+JUDGE_BUDGET_USD = _DEFAULT_SDK.judge_budget_usd
+TEAM_MAX_TURNS = _DEFAULT_SDK.team_max_turns
+DISCOVERY_MAX_TURNS = _DEFAULT_SDK.discovery_max_turns
+DEBATE_MAX_TURNS = _DEFAULT_SDK.debate_max_turns
+JUDGE_MAX_TURNS = _DEFAULT_SDK.judge_max_turns
+
+_MAX_TURNS_UNSET = object()
 
 REPOSITORY_TOOLS = [
     "mcp__repository__list_repository",
@@ -174,10 +175,6 @@ def _role_agents(role: Role) -> dict[str, AgentDefinition]:
     return {}
 
 
-def _role_budget(role: Role) -> float:
-    return JUDGE_BUDGET_USD if role == "judge" else TEAM_BUDGET_USD
-
-
 def _sdk_output_schema(output_model: type[BaseModel]) -> dict[str, Any]:
     def normalize(value: Any) -> Any:
         if isinstance(value, dict):
@@ -203,12 +200,28 @@ class TeamBackend:
         environment: Mapping[str, str] | None = None,
         sdk_query: Callable[..., Any] = query,
         mcp_servers: dict[str, Any] | None = None,
+        sdk_limits: SdkLimits | None = None,
     ) -> None:
         from pathlib import Path
         self._target_repo = Path(target_repo).resolve()
         self._environment = environment
         self._sdk_query = sdk_query
         self._mcp_servers = dict(mcp_servers) if mcp_servers is not None else {}
+        self._sdk = sdk_limits if sdk_limits is not None else SdkLimits()
+
+    def _role_budget(self, role: Role) -> float | None:
+        return (
+            self._sdk.judge_budget_usd
+            if role == "judge"
+            else self._sdk.team_budget_usd
+        )
+
+    def _default_max_turns(self, role: Role) -> int | None:
+        return (
+            self._sdk.judge_max_turns
+            if role == "judge"
+            else self._sdk.team_max_turns
+        )
 
     async def run_turn(
         self,
@@ -218,7 +231,7 @@ class TeamBackend:
         output_model: type[OutputModel],
         session_id: str | None,
         audits: TeamTurnAudits,
-        max_turns: int | None = None,
+        max_turns: int | None | object = _MAX_TURNS_UNSET,
         enable_subagents: bool = True,
     ) -> TeamTurnResult:
         last_error: Exception | None = None
@@ -284,15 +297,18 @@ class TeamBackend:
         output_model: type[BaseModel],
         session_id: str | None,
         audits: TeamTurnAudits,
-        max_turns: int | None = None,
+        max_turns: int | None | object = _MAX_TURNS_UNSET,
         enable_subagents: bool = True,
     ) -> ClaudeAgentOptions:
         try:
             sdk_env = _deepseek_environment(self._environment or _default_env())
         except Exception:
             sdk_env = {}
-        if max_turns is None:
-            max_turns = JUDGE_MAX_TURNS if role == "judge" else TEAM_MAX_TURNS
+        resolved_turns = (
+            self._default_max_turns(role)
+            if max_turns is _MAX_TURNS_UNSET
+            else max_turns
+        )
         use_subagents = enable_subagents and role in {"red_team", "code_team"}
         allowed = _role_tools(role)
         if not use_subagents:
@@ -311,8 +327,8 @@ class TeamBackend:
                 "type": "json_schema",
                 "schema": _sdk_output_schema(output_model),
             },
-            max_turns=max_turns,
-            max_budget_usd=_role_budget(role),
+            max_turns=resolved_turns,
+            max_budget_usd=self._role_budget(role),
             resume=session_id,
             hooks=self._hooks(audits),
         )

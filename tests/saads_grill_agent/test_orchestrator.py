@@ -338,7 +338,7 @@ def test_discovery_max_turns_failure_counts_as_empty_sweep(tmp_path: Path) -> No
     class FailingDiscoveryBackend(ScriptedTeamBackend):
         async def run_turn(self, **kwargs: Any) -> TeamTurnResult:
             if kwargs["role"] == "red_team":
-                assert kwargs.get("max_turns") == DISCOVERY_MAX_TURNS
+                assert kwargs.get("max_turns") is DISCOVERY_MAX_TURNS
                 raise TeamTurnError("team turn failed: error_max_turns")
             return await super().run_turn(**kwargs)
 
@@ -368,7 +368,7 @@ def test_debate_max_turns_failure_interrupts_instead_of_crashing(tmp_path: Path)
         async def run_turn(self, **kwargs: Any) -> TeamTurnResult:
             prompt = kwargs.get("prompt", "")
             if kwargs["role"] == "code_team" and "Falsify hypothesis" in prompt:
-                assert kwargs.get("max_turns") == DEBATE_MAX_TURNS
+                assert kwargs.get("max_turns") is DEBATE_MAX_TURNS
                 raise TeamTurnError("team turn failed: error_max_turns")
             return await super().run_turn(**kwargs)
 
@@ -409,7 +409,7 @@ def test_discovery_requests_elevated_max_turns(tmp_path: Path) -> None:
         turns for role, turns in backend.max_turns_by_role if role == "red_team"
     ]
     assert red_turns
-    assert all(turns == DISCOVERY_MAX_TURNS for turns in red_turns)
+    assert all(turns is DISCOVERY_MAX_TURNS for turns in red_turns)
 
 
 def test_model_cited_evidence_must_have_been_issued(tmp_path: Path) -> None:
@@ -674,6 +674,8 @@ def test_resource_caps_checkpoint_and_interrupt(
             rebuttal(),
             red_response(),
             adjudication("request_more_evidence"),
+            # Wind-down judge after the hard scheduling cap is hit.
+            adjudication("reject"),
         ]
     if limit_name == "max_hypotheses":
         outputs.extend([
@@ -695,8 +697,15 @@ def test_resource_caps_checkpoint_and_interrupt(
     assert ledger.checkpoints
     assert any(event["event"] == "resource_cap_reached" for event in ledger.events)
     if limit_name == "max_agent_calls":
-        assert backend.role_order == ["code_team", "red_team", "code_team", "red_team", "judge"]
-        assert state.hypotheses[hypothesis().hypothesis_id].status == "debating"
+        assert backend.role_order == [
+            "code_team",
+            "red_team",
+            "code_team",
+            "red_team",
+            "judge",
+            "judge",
+        ]
+        assert state.hypotheses[hypothesis().hypothesis_id].status == "rejected"
     if limit_name == "max_hypotheses":
         assert backend.role_order.count("judge") == 40
         assert all(record.status == "rejected" for record in state.hypotheses.values())

@@ -24,8 +24,6 @@ from saads_grill_agent.contracts import (
 from saads_grill_agent.report import confidence_level
 from saads_grill_agent.repository import RepositoryEvidenceStore
 from saads_grill_agent.teams import (
-    DEBATE_MAX_TURNS,
-    DISCOVERY_MAX_TURNS,
     HypothesisBatch,
     RebuttalBatch,
     RedResponseBatch,
@@ -124,7 +122,7 @@ class AssessmentOrchestrator:
                         "and never put file paths in evidence_id fields."
                     ),
                     ProfileResult,
-                    enable_subagents=False,
+                    enable_subagents=state.config.sdk.enable_subagents_profiling,
                 )
                 profile = self._normalize_profile_evidence(state, profile)
                 self._require_profile_evidence(state, profile)
@@ -174,8 +172,8 @@ class AssessmentOrchestrator:
                     "red_team",
                     prompt,
                     HypothesisBatch,
-                    enable_subagents=False,
-                    max_turns=DISCOVERY_MAX_TURNS,
+                    enable_subagents=state.config.sdk.enable_subagents_discovery,
+                    max_turns=state.config.sdk.discovery_max_turns,
                 )
             except TeamTurnError as exc:
                 # Large repos can exhaust SDK turns before structured output lands.
@@ -279,8 +277,8 @@ class AssessmentOrchestrator:
                         "calls; return RebuttalBatch promptly."
                     ),
                     RebuttalBatch,
-                    enable_subagents=False,
-                    max_turns=DEBATE_MAX_TURNS,
+                    enable_subagents=state.config.sdk.enable_subagents_debate,
+                    max_turns=state.config.sdk.debate_max_turns,
                 )
             except TeamTurnError as exc:
                 self._event(
@@ -312,8 +310,8 @@ class AssessmentOrchestrator:
                         "return RedResponseBatch promptly."
                     ),
                     RedResponseBatch,
-                    enable_subagents=False,
-                    max_turns=DEBATE_MAX_TURNS,
+                    enable_subagents=state.config.sdk.enable_subagents_debate,
+                    max_turns=state.config.sdk.debate_max_turns,
                 )
             except TeamTurnError as exc:
                 self._event(
@@ -384,7 +382,7 @@ class AssessmentOrchestrator:
                     "judge",
                     f"Adjudicate hypothesis {hypothesis_id}; return a terminal verdict at final round.",
                     Adjudication,
-                    max_turns=DEBATE_MAX_TURNS,
+                    max_turns=state.config.sdk.judge_max_turns,
                 )
             except TeamTurnError as exc:
                 self._event(
@@ -455,7 +453,7 @@ class AssessmentOrchestrator:
                     "confirm, reject, or duplicate. Cite issued evidence_ids only."
                 ),
                 Adjudication,
-                max_turns=DEBATE_MAX_TURNS,
+                max_turns=state.config.sdk.judge_max_turns,
             )
             if (
                 adjudication.hypothesis_id != hypothesis_id
@@ -497,7 +495,12 @@ class AssessmentOrchestrator:
             self._event("resource_cap_reached", reason=reason[:500])
             self._checkpoint(state)
 
-    async def _generate_test_drafts(self, state: AssessmentState) -> None:
+    async def _generate_test_drafts(
+        self,
+        state: AssessmentState,
+        *,
+        allow_over_cap: bool = False,
+    ) -> None:
         from saads_grill_agent.test_artifacts import TestArtifactPolicyError
 
         profile = state.profile
@@ -523,8 +526,9 @@ class AssessmentOrchestrator:
                         f"{frameworks}. Return GeneratedTestDraft only."
                     ),
                     GeneratedTestDraft,
-                    enable_subagents=False,
-                    max_turns=DEBATE_MAX_TURNS,
+                    enable_subagents=state.config.sdk.enable_subagents_discovery,
+                    max_turns=state.config.sdk.debate_max_turns,
+                    allow_over_cap=allow_over_cap,
                 )
                 if draft.finding_id != finding.finding_id:
                     raise ValueError("test draft does not match its finding")
@@ -548,8 +552,18 @@ class AssessmentOrchestrator:
         *,
         enable_subagents: bool = True,
         max_turns: int | None = None,
+        allow_over_cap: bool = False,
     ) -> Any:
-        if state.agent_calls_used >= state.config.max_agent_calls:
+        """Run one team turn.
+
+        ``allow_over_cap`` is for wind-down only (forced judge / test drafts after
+        a hard scheduling or cost ceiling) so an assessment can close cleanly.
+        """
+        if (
+            not allow_over_cap
+            and state.config.max_agent_calls is not None
+            and state.agent_calls_used >= state.config.max_agent_calls
+        ):
             raise _ResourceLimit("max_agent_calls")
         result = await self._backend.run_turn(
             role=role,
@@ -565,10 +579,16 @@ class AssessmentOrchestrator:
         state.agent_calls_used += 1
         if result.total_cost_usd is None:
             self._event("missing_cost_metadata", role=role)
-            raise _ResourceLimit("missing_cost_metadata")
-        state.cost_usd_used += result.total_cost_usd
-        if state.cost_usd_used >= state.config.max_cost_usd:
-            raise _ResourceLimit("max_cost_usd")
+            if not allow_over_cap and state.config.max_cost_usd is not None:
+                raise _ResourceLimit("missing_cost_metadata")
+        else:
+            state.cost_usd_used += result.total_cost_usd
+            if (
+                not allow_over_cap
+                and state.config.max_cost_usd is not None
+                and state.cost_usd_used >= state.config.max_cost_usd
+            ):
+                raise _ResourceLimit("max_cost_usd")
         return result.output
 
     def _sync_issued_evidence(self, state: AssessmentState) -> None:
@@ -590,26 +610,44 @@ class AssessmentOrchestrator:
     async def _interrupt(self, state: AssessmentState, reason: str) -> AssessmentState:
         state.phase = "interrupted"
         self._event("resource_cap_reached", reason=reason)
-        await self._finalize_active_hypotheses(state)
+        # Wind-down: close open debates and draft tests even if the hard cap was hit.
+        await self._finalize_active_hypotheses(state, allow_over_cap=True)
+        try:
+            await self._generate_test_drafts(state, allow_over_cap=True)
+        except Exception as exc:  # noqa: BLE001 - keep partial run resumable
+            self._event("wind_down_test_drafts_failed", error=str(exc)[:500])
         self._checkpoint(state)
         return state
 
-    async def _finalize_active_hypotheses(self, state: AssessmentState) -> None:
+    async def _finalize_active_hypotheses(
+        self,
+        state: AssessmentState,
+        *,
+        allow_over_cap: bool = False,
+    ) -> None:
         """Ask the judge for a terminal decision after resource exhaustion."""
         for hypothesis_id, record in list(state.hypotheses.items()):
             if record.status != "debating":
                 continue
-            if (
-                state.agent_calls_used >= state.config.max_agent_calls
-                or state.cost_usd_used >= state.config.max_cost_usd
-            ):
-                return
+            if not allow_over_cap:
+                if (
+                    state.config.max_agent_calls is not None
+                    and state.agent_calls_used >= state.config.max_agent_calls
+                ):
+                    return
+                if (
+                    state.config.max_cost_usd is not None
+                    and state.cost_usd_used >= state.config.max_cost_usd
+                ):
+                    return
             try:
                 adjudication = await self._turn(
                     state,
                     "judge",
                     f"Resource limit reached. Issue a terminal judgment for {hypothesis_id}.",
                     Adjudication,
+                    max_turns=state.config.sdk.judge_max_turns,
+                    allow_over_cap=allow_over_cap,
                 )
                 if (
                     adjudication.hypothesis_id != hypothesis_id
