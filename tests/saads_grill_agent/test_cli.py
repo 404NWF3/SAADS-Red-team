@@ -148,6 +148,69 @@ def test_start_requires_nonempty_authorization_ref(tmp_path: Path) -> None:
     )
 
 
+def test_start_accepts_red_team_config_yaml(tmp_path: Path) -> None:
+    config_path = tmp_path / "red-team-config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                f"target_repo: {fixture_repo().as_posix()}",
+                "authorization_ref: from-config",
+                "goal: config-goal",
+                f"output_root: {tmp_path.as_posix()}",
+                "max_cost_usd: 11",
+                "sdk:",
+                "  discovery_max_turns: null",
+                "  team_budget_usd: 3.5",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    exit_code = main(
+        ["start", "--config", str(config_path)],
+        run_assessment=fake_completed_assessment,
+    )
+    assert exit_code == 0
+    run_dirs = [path for path in tmp_path.iterdir() if path.is_dir()]
+    assert len(run_dirs) == 1
+    resolved = (run_dirs[0] / "red-team-config.resolved.yaml").read_text(encoding="utf-8")
+    assert "from-config" in resolved
+    assert "config-goal" in resolved
+    state = json.loads((run_dirs[0] / "run_state.json").read_text(encoding="utf-8"))
+    assert state["config"]["goal"] == "config-goal"
+    assert state["config"]["max_cost_usd"] == 11
+    assert state["config"]["sdk"]["team_budget_usd"] == 3.5
+
+
+def test_cli_authorization_overrides_config(tmp_path: Path) -> None:
+    config_path = tmp_path / "cfg.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                f"target_repo: {fixture_repo().as_posix()}",
+                "authorization_ref: from-config",
+                f"output_root: {tmp_path.as_posix()}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    exit_code = main(
+        [
+            "start",
+            "--config",
+            str(config_path),
+            "--authorization-ref",
+            "from-cli",
+        ],
+        run_assessment=fake_completed_assessment,
+    )
+    assert exit_code == 0
+    run_dir = next(path for path in tmp_path.iterdir() if path.is_dir())
+    metadata = json.loads((run_dir / "run_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["authorization_ref"] == "from-cli"
+
+
 def test_start_records_authorization_ref(tmp_path: Path) -> None:
     exit_code = main(
         [
@@ -195,6 +258,32 @@ def test_resume_reloads_run_and_prints_paths(
     assert "report.md" in output
     state = json.loads((run_dir / "run_state.json").read_text(encoding="utf-8"))
     assert state["phase"] == "complete"
+
+
+def test_resume_can_raise_max_agent_calls(tmp_path: Path) -> None:
+    start_code = main(
+        [
+            "start",
+            str(fixture_repo()),
+            "--authorization-ref",
+            "fixture-test",
+            "--output-root",
+            str(tmp_path),
+        ],
+        run_assessment=fake_interrupted_assessment,
+    )
+    assert start_code == 3
+    run_dir = next(path for path in tmp_path.iterdir() if path.is_dir())
+
+    async def resume_and_check(context: AssessmentRunContext) -> AssessmentState:
+        assert context.config.max_agent_calls == 2000
+        return await fake_completed_assessment(context)
+
+    resume_code = main(
+        ["resume", str(run_dir), "--max-agent-calls", "2000"],
+        run_assessment=resume_and_check,
+    )
+    assert resume_code == 0
 
 
 def test_resume_fails_closed_on_snapshot_mismatch(tmp_path: Path) -> None:
